@@ -33,8 +33,13 @@ The system is organized into the following main layers:
 
 ### Contents
 
-1. [Workshop Overview](5.1-Workshop-overview/)
+1. [Introduction](5.1-Workshop-overview/)
 2. [Prerequisites](5.2-Prerequiste/)
-3. [Designing and Building the RakiBookery Infrastructure on AWS](5.3-Neon-Infrastructure/)
-4. [Deploying RakiBookery on AWS](5.4-Neon-Deployment/)
-5. [Testing, Operations, and Continuous Deployment](5.5-Neon-Operations/)
+3. [IAM](5.3-IAM/)
+4. [Network](5.4-Network/)
+5. [ECR](5.5-ECR/)
+6. [Data](5.6-Data/)
+7. [Messaging](5.7-Messaging/)
+8. [EKS Cluster](5.8-EKS-Cluster/)
+9. [EKS Addons](5.9-EKS-Addons/)
+10. [Clean up](5.10-Cleanup/)

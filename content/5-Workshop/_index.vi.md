@@ -33,8 +33,13 @@ Hệ thống được tổ chức theo năm lớp chính:
 
 ### Nội dung
 
-1. [Tổng quan Workshop](5.1-Workshop-overview/)
-2. [Chuẩn bị](5.2-Prerequiste/)
-3. [Thiết kế và xây dựng hạ tầng RakiBookery trên AWS](5.3-Neon-Infrastructure/)
-4. [Triển khai RakiBookery trên AWS](5.4-Neon-Deployment/)
-5. [Kiểm thử, vận hành và triển khai liên tục](5.5-Neon-Operations/)
+1. [Giới thiệu](5.1-Workshop-overview/)
+2. [Các bước chuẩn bị](5.2-Prerequiste/)
+3. [IAM](5.3-IAM/)
+4. [Network](5.4-Network/)
+5. [ECR](5.5-ECR/)
+6. [Data](5.6-Data/)
+7. [Messaging](5.7-Messaging/)
+8. [EKS Cluster](5.8-EKS-Cluster/)
+9. [EKS Addons](5.9-EKS-Addons/)
+10. [Dọn dẹp tài nguyên](5.10-Cleanup/)
