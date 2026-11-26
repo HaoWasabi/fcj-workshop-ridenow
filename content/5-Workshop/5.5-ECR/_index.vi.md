@@ -1,5 +1,5 @@
 ---
-title : "ECR"
+title : "ECR: Image Registry"
 date : 2024-01-01
 weight : 5
 chapter : false
