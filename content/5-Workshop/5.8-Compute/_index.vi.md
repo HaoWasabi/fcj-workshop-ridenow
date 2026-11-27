@@ -1,5 +1,5 @@
 ---
-title : "EKS Cluster"
+title : "Computing"
 date : 2024-01-01
 weight : 8
 chapter : false

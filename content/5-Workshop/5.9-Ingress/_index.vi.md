@@ -1,5 +1,5 @@
 ---
-title : "EKS Addons"
+title : "Ingress"
 date : 2024-01-01
 weight : 9
 chapter : false

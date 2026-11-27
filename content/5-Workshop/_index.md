@@ -10,7 +10,7 @@ pre: " <b> 5. </b> "
 
 ### Overview
 
-This workshop shows how to create and configure, one service console at a time, the AWS services that **RideNow** runs on. You build the production environment (`prod`) in the region `ap-southeast-1` (Singapore). The workshop covers AWS setup only: it does not explain application code.
+This workshop guides you through the entire process of building, developing, and operating **RideNow** - a ride-sharing application - on the Amazon Web Services (AWS) platform in the region `ap-southeast-1` (Singapore) with the production environment (`prod`) . The workshop covers AWS setup only: it does not explain application code.
 
 Every page uses the AWS Management Console for resource creation. The AWS CLI, `kubectl` and Helm appear only for steps the console cannot do, such as kubeconfig, add-on installs, Kubernetes secrets, image build and push, and verification checks. All commands are Bash (use WSL on Windows).
 
@@ -44,17 +44,17 @@ The system is organized into the following layers:
 
 ### Contents
 
-1. [Introduction](5.1-Workshop-overview/)
-2. [Prerequisites](5.2-Prerequiste/)
-3. [IAM](5.3-IAM/)
-4. [Network](5.4-Network/)
-5. [ECR](5.5-ECR/)
-6. [Data](5.6-Data/)
-7. [Messaging](5.7-Messaging/)
-8. [EKS Cluster](5.8-EKS-Cluster/)
-9. [EKS Addons](5.9-EKS-Addons/)
+1. [Overview](5.1-Workshop-overview/)
+2. [Prerequiste](5.2-Prerequiste/)
+3. [Identity](5.3-Identity/)
+4. [Networking](5.4-Network/)
+5. [Container Image](5.5-Images/)
+6. [Database](5.6-Data/)
+7. [Messaging & Cache](5.7-Messaging/)
+8. [Computing](5.8-Compute/)
+9. [Ingress](5.9-Ingress/)
 10. [Frontend](5.10-Frontend/)
-11. [Clean up](5.11-Cleanup/)
+11. [Clean-up](5.11-Cleanup/)
 
 ### Creation order
 

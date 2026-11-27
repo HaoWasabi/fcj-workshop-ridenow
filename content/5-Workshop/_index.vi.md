@@ -10,7 +10,7 @@ pre: " <b> 5. </b> "
 
 ### Tổng quan
 
-Workshop này hướng dẫn tạo và cấu hình, lần lượt trong từng service console, các dịch vụ AWS mà **RideNow** chạy trên đó. Bạn xây dựng môi trường production (`prod`) tại region `ap-southeast-1` (Singapore). Workshop chỉ bao gồm phần thiết lập AWS và không giải thích mã nguồn ứng dụng.
+Workshop này hướng dẫn toàn bộ quy trình xây dựng, triển khai và vận hành **RideNow** - ứng dụng đặt xe trực tuyến - trên nền tảng Amazon Web Services (AWS), tại region `ap-southeast-1` (Singapore), môi trường production (`prod`). Workshop chỉ bao gồm phần thiết lập AWS và không giải thích mã nguồn ứng dụng.
 
 Mọi trang đều dùng AWS Management Console để tạo tài nguyên. AWS CLI, `kubectl` và Helm chỉ xuất hiện ở những bước console không làm được, như kubeconfig, cài add-on, Kubernetes secret, build và push image, và các bước kiểm tra. Mọi lệnh đều là Bash (dùng WSL trên Windows).
 
@@ -46,13 +46,13 @@ Hệ thống được tổ chức theo các lớp sau:
 
 1. [Giới thiệu](5.1-Workshop-overview/)
 2. [Các bước chuẩn bị](5.2-Prerequiste/)
-3. [IAM](5.3-IAM/)
-4. [Network](5.4-Network/)
-5. [ECR](5.5-ECR/)
-6. [Data](5.6-Data/)
-7. [Messaging](5.7-Messaging/)
-8. [EKS Cluster](5.8-EKS-Cluster/)
-9. [EKS Addons](5.9-EKS-Addons/)
+3. [Định danh](5.3-Identity/)
+4. [Networking](5.4-Network/)
+5. [Container Image](5.5-Images/)
+6. [Database](5.6-Data/)
+7. [Messaging & Cache](5.7-Messaging/)
+8. [Computing](5.8-Compute/)
+9. [Ingress](5.9-Ingress/)
 10. [Frontend](5.10-Frontend/)
 11. [Dọn dẹp tài nguyên](5.11-Cleanup/)
 
