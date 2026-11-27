@@ -1,42 +1,40 @@
 ---
 title: "Worklog Tuần 1"
-date: 2026-08-03
+date: 2026-10-19
 weight: 1
 chapter: false
 pre: " <b> 1.1. </b> "
 ---
-<!-- {{% notice warning %}}
-⚠️ **Lưu ý:** Các thông tin dưới đây chỉ nhằm mục đích tham khảo, vui lòng **không sao chép nguyên văn** cho bài báo cáo của bạn kể cả warning này.
-{{% /notice %}} -->
 
 ### Mục tiêu tuần 1:
 
-* Làm quen với quy trình xây dựng AWS Workshop.
-* Làm quen với chương trình FCAJ và AWS Cloud.
-* Hiểu các khái niệm Cloud Computing cơ bản.
-* Tạo và bảo mật AWS Account.
-* Hiểu AWS Free Tier và quản lý chi phí.
-* Làm quen với AWS Support và Support Case.
+* Làm quen với team, các mentor và cách vận hành của kỳ thực tập.
+* Có tài khoản AWS dùng được, bật MFA, tạo IAM user và cảnh báo ngân sách để không bị bất ngờ về hóa đơn.
+* Nắm các khái niệm cốt lõi: Region, Availability Zone, VPC, IAM và việc chạy container trên AWS nghĩa là gì.
+* Cùng team bàn ý tưởng và chốt một dự án để làm trong tám tuần.
 
-### Các công việc đã làm trong tuần này:
-| Thứ | Công việc | Ngày bắt đầu | Ngày hoàn thành | Nguồn tài liệu |
-|:---:|---|:---:|:---:|---|
-| 4 | - Xem video hướng dẫn cách tạo và sử dụng Workshop AWS <br>&emsp; + Tải Workshop mẫu về máy.  <br>&emsp; + Tùy chỉnh nội dung trong Worklog để dễ nhìn hơn. | 05/08/2026 | 05/08/2026 | [Hướng dẫn làm Workshop AWS](https://youtu.be/mXRqgMr_97U?si=mR05MHVdcG_tZHqT) |
-| 5 | - Tìm hiểu tổng quan FCAJ / FCJ Workforce. <br>&emsp; - Học các khái niệm Cloud Computing cơ bản. <br>&emsp; - Tìm hiểu Public / Private / Hybrid Cloud. <br>&emsp; - Tìm hiểu IaaS / PaaS / SaaS. <br>&emsp; - Tìm hiểu AWS Region, Availability Zone và Edge Location. <br>&emsp; - Tạo và xác minh tài khoản AWS, xác thực MFA. <br>&emsp; - Tìm hiểu AWS Free Tier. <br>&emsp; - Đọc bài Manage usage costs on AWS with AWS Budgets. <br>&emsp; - Tạo AWS Budget và thiết lập cảnh báo chi phí. | 06/08/2026 | 06/08/2026 | [FCAJ – Explore AWS Services](https://cloudjourney.awsstudygroup.com/1-explore/)  <br> [Tạo tài khoản AWS đầu tiên](https://000001.awsstudygroup.com/)| 
-| 6 | - Thực hiện 5 nhiệm vụ "Money-Making" <br>&emsp; + Thiết lập cảnh báo thanh toán. <br> - Tìm hiểu AWS Billing & Cost Management.<br> -  Cấu hình Billing Alarm. | 07/08/2026 | 07/08/2026 | [5 nhiệm vụ kiếm tiền](https://000001.awsstudygroup.com/4-h%C6%B0%E1%BB%9Bng-d%E1%BA%ABn-chi-ti%E1%BA%BFt-5-nhi%E1%BB%87m-v%E1%BB%A5-ki%E1%BA%BFm-ti%E1%BB%81n/)<br>[AWS Budget - Lab 000007](https://000007.awsstudygroup.com/) |
+| Thứ | Công việc | Ngày bắt đầu | Ngày hoàn thành | Tài liệu tham khảo |
+| :-: | :--- | :----------: | :-------------: | :--- |
+| 2 | - Buổi gặp đầu tiên với mentor và bốn bạn trong nhóm (Thuận, Đào, Hào, Nhi). <br> - Nghe phổ biến quy định thực tập, lịch trình đến 11/12 và cách báo cáo tiến độ. <br> - Tạo nhóm chat và repository chung của team. | 19/10/2026 | 19/10/2026 | [FCJ - Explore AWS Services](https://cloudjourney.awsstudygroup.com/1-explore/) |
+| 3 | - Tạo tài khoản AWS, bật MFA cho root user và tạo một IAM user admin để dùng hằng ngày. <br> - Thiết lập AWS Budgets và billing alarm. <br> - Đọc về Region và Availability Zone. | 20/10/2026 | 20/10/2026 | [Create Your First AWS Account](https://000001.awsstudygroup.com/) |
+| 4 | - Học căn bản về VPC: subnet, route table, internet gateway, NAT gateway. <br> - Tự bấm tạo một VPC đầu tiên trên console để xem các phần ghép với nhau thế nào. | 21/10/2026 | 21/10/2026 | [Amazon VPC User Guide](https://docs.aws.amazon.com/vpc/latest/userguide/what-is-amazon-vpc.html) |
+| 5 | - Học IAM cho đàng hoàng: user, role, policy và vì sao dùng role tốt hơn access key. <br> - Mỗi thành viên ghi ra hai, ba ý tưởng dự án. | 22/10/2026 | 22/10/2026 | [IAM User Guide](https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction.html) |
+| 6 | - Cả nhóm brainstorm: so sánh ý tưởng theo tiêu chí "có làm xong trong tám tuần không" và "có dùng đủ nhiều dịch vụ AWS không". <br> - Chốt làm nền tảng gọi xe và đặt tên là RideNow. <br> - Thống nhất mình làm trưởng nhóm và phụ trách phần cloud. | 23/10/2026 | 23/10/2026 | |
 
-### Kết quả đạt được tuần 1:
+### Kết quả tuần 1:
 
-&emsp;◉ Thứ 4:
-<br>&emsp;&emsp;○ Biết cách tạo, sửa lỗi không build được web và sử dụng Workshop để ghi worklog.
+&emsp;◉ Thứ Hai:
+<br>&emsp;&emsp;○ Gặp mọi người, dựng repository và nhóm chat.
 
-&emsp;◉ Thứ 5:
-<br>&emsp;&emsp;○ Hiểu tổng quan về FCAJ và Cloud Computing, Nắm được IaaS, PaaS và SaaS, Tạo được AWS Account và làm quen với AWS Management Console.
-<br>&emsp;&emsp;○ Hiểu sự khác biệt giữa Root User và IAM User, bật MFA cho Root User, 
-<br>&emsp;&emsp;○ Hiểu AWS Free Tier, tạo và cấu hình AWS Budget và thiết lập cảnh báo chi phí.
+&emsp;◉ Thứ Ba:
+<br>&emsp;&emsp;○ Tài khoản, MFA, admin user và cảnh báo ngân sách đã xong trước khi đụng tới bất kỳ dịch vụ nào khác.
 
-&emsp;◉ Thứ 6:
-<br>&emsp;&emsp;○ Hoàn thành 5 nhiệm vụ và nhận 100$ AWS Credit.
-<br>&emsp;&emsp;○ Hiểu AWS Billing & Cost Management.
-<br>&emsp;&emsp;○ Cấu hình Billing Alarm.
-<br>&emsp;&emsp;○ Biết cách đảm nhận vai trò và chuyển đổi vai trò trong AWS Man+agement Console.
+&emsp;◉ Thứ Tư:
+<br>&emsp;&emsp;○ Mình chỉ thật sự hiểu VPC sau khi vẽ ra giấy rồi tự dựng bằng tay một lần.
+
+&emsp;◉ Thứ Năm:
+<br>&emsp;&emsp;○ Hiểu vì sao không bao giờ để access key trong code, và điều này về sau định hình cách cả dự án xử lý thông tin xác thực.
+
+&emsp;◉ Thứ Sáu:
+<br>&emsp;&emsp;○ Nhóm chọn RideNow. Gọi xe hợp vì cần nhiều dịch vụ nói chuyện với nhau, một lý do tốt để dùng AWS cho nghiêm túc.
+<br>&emsp;&emsp;○ Mình nhận vai trò trưởng nhóm. Hơi run nên mình ghi sẵn những việc cần quyết định trong tuần sau.

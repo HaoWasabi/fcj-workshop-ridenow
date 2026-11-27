@@ -12,11 +12,12 @@ pre: "<b>2. </b>"
 
 RideNow is a ride-hailing platform made of seven deployable services (user, driver, trip, payment, matching, notification, and a realtime gateway) and a single-page web frontend. The services keep one database each and exchange events through a message topic and queues.
 
-This proposal covers the infrastructure only: how to run RideNow on Amazon Web Services in one production environment (`prod`) in the Singapore Region (`ap-southeast-1`). The environment is built by hand, one service console at a time, following the step-by-step guides in `guides/cloudformation/`. The read-only templates in `iac/stacks/` and the values in `iac/params/prod.json` define every name and setting.
+Over eight weeks of internship, our team wanted to do one concrete thing: put RideNow on AWS in a way anyone can repeat. So this proposal covers the infrastructure only, meaning how to run RideNow on Amazon Web Services in one production environment (`prod`) in the Singapore Region (`ap-southeast-1`). The environment is built by hand, one service console at a time, following the step-by-step guides in `guides/cloudformation/`. The read-only templates in `iac/stacks/` and the values in `iac/params/prod.json` define every name and setting.
 
 - **Environment:** `prod`, region `ap-southeast-1`
-- **Project duration:** [OWNER: fill in the schedule]
-- **Team size and roles:** [OWNER: fill in team size and roles]
+- **Project duration:** 8 weeks, from 19 October to 11 December 2026 (my internship period)
+- **Team:** 5 members. Phương Anh (team lead, cloud architecture and all infrastructure), Thuận, Đào, Hào and Nhi (services and workshop pages).
+- **Company and mentor:** [OWNER: fill in the company and mentor names]
 
 ---
 
@@ -94,21 +95,21 @@ Messaging resources: the SNS topic `ridenow-prod-events`, the queues `ridenow-pr
 
 ### 4. Timeline & Milestones
 
-The build follows the creation order of the guides. Dates and durations are not recorded in the repository.
+The build follows the creation order of the guides. The dates below are my own plan for the eight weeks.
 
 | Step | Work items | Schedule |
 | :--- | :--- | :--- |
-| **1. Identity and network** | IAM roles and policies; VPC, subnets, NAT gateways, route tables, security groups. | [OWNER: fill in dates] |
-| **2. Registry, data, messaging, cluster** | ECR repositories and image push; KMS, RDS and Secrets Manager; SNS, SQS and Valkey; EKS cluster and Fargate profiles. These four can run in any order after step 1. | [OWNER: fill in dates] |
-| **3. Add-ons and services** | Pod network access rules, OIDC provider, IRSA roles; AWS Load Balancer Controller and External Secrets; deploy the seven services. | [OWNER: fill in dates] |
-| **4. Frontend** | S3, CloudFront, optional deploy role; first publish of the site. Done last, after the Ingress has an ALB address. | [OWNER: fill in dates] |
-| **5. Verification and teardown** | Run the smoke test and the guide checks; delete resources in reverse dependency order when finished. | [OWNER: fill in dates] |
+| **1. Identity and network** | IAM roles and policies; VPC, subnets, NAT gateways, route tables, security groups. | Weeks 1 to 4 (19/10 to 13/11) |
+| **2. Registry, data, messaging, cluster** | ECR repositories and image push; KMS, RDS and Secrets Manager; SNS, SQS and Valkey; EKS cluster and Fargate profiles. These four can run in any order after step 1. | Weeks 4 to 6 (09/11 to 27/11) |
+| **3. Add-ons and services** | Pod network access rules, OIDC provider, IRSA roles; AWS Load Balancer Controller and External Secrets; deploy the seven services. | Week 6 (23/11 to 27/11) |
+| **4. Frontend** | S3, CloudFront, optional deploy role; first publish of the site. Done last, after the Ingress has an ALB address. | Week 7 (30/11 to 04/12) |
+| **5. Verification and teardown** | Run the smoke test and the guide checks; delete resources in reverse dependency order when finished. | Weeks 7 and 8 (02/12 to 11/12) |
 
 ---
 
 ### 5. Estimated Budget
 
-The repository names the services that bill by the hour from the moment they are created. It contains no price figures, so the cost totals are left for the owner.
+These services bill by the hour from the moment they are created, so the biggest saving is simply to delete everything when we stop working. The figures below are my own estimates from public on-demand prices in Singapore, rounded, and should be checked in the AWS Pricing Calculator.
 
 | Cost driver | Configuration |
 | --- | --- |
@@ -122,8 +123,9 @@ The repository names the services that bill by the hour from the moment they are
 
 | Figure | Value |
 | --- | --- |
-| Estimated monthly cost | [OWNER: fill in the cost estimate] |
-| Budget limit | [OWNER: fill in the budget limit] |
+| Cost if everything ran 24/7 | about USD 0.87 per hour, or about USD 630 per month |
+| Budget limit | USD 150, which leaves some room for a few full rebuilds |
+| Estimated cost for the whole internship | about USD 120, since the environment runs only while we build and test (roughly 100 hours) |
 
 ---
 
@@ -131,11 +133,11 @@ The repository names the services that bill by the hour from the moment they are
 
 | Identified risk | Likelihood | Impact | Mitigation |
 | --- | --- | --- | --- |
-| **Hourly charges left running** | [OWNER: rate] | [OWNER: rate] | Follow the teardown order. Delete the Ingress ALB before the VPC. |
-| **Wrong creation order** | [OWNER: rate] | [OWNER: rate] | Create the add-ons resources before installing the Load Balancer Controller and External Secrets. Create the frontend last. |
-| **Database credentials exposed** | [OWNER: rate] | [OWNER: rate] | RDS-managed secrets in Secrets Manager, delivered through External Secrets and IRSA. Databases stay in private subnets. |
-| **Open edge** | [OWNER: rate] | [OWNER: rate] | The ALB is HTTP on port 80 with no WAF and no source restriction. `docs/ARCHITECTURE.md` lists TLS, WAF and authentication as blockers before production use. |
-| **Event loss or duplicates** | [OWNER: rate] | [OWNER: rate] | Dead-letter queues on every queue, idempotent consumers, and events published after commit. |
+| **Hourly charges left running** | Medium | High | Follow the teardown order. Delete the Ingress ALB before the VPC. |
+| **Wrong creation order** | High | Medium | Create the add-ons resources before installing the Load Balancer Controller and External Secrets. Create the frontend last. |
+| **Database credentials exposed** | Low | High | RDS-managed secrets in Secrets Manager, delivered through External Secrets and IRSA. Databases stay in private subnets. |
+| **Open edge** | Medium | Medium | The ALB is HTTP on port 80 with no WAF and no source restriction. `docs/ARCHITECTURE.md` lists TLS, WAF and authentication as blockers before production use. |
+| **Event loss or duplicates** | Low | Medium | Dead-letter queues on every queue, idempotent consumers, and events published after commit. |
 
 ---
 

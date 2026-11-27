@@ -12,11 +12,12 @@ pre: "<b>2. </b>"
 
 RideNow là nền tảng gọi xe gồm bảy dịch vụ triển khai độc lập (user, driver, trip, payment, matching, notification và realtime gateway) cùng một giao diện web dạng single-page. Mỗi dịch vụ có cơ sở dữ liệu riêng và trao đổi sự kiện qua một topic và các hàng đợi.
 
-Bản đề xuất này chỉ nói về hạ tầng: cách chạy RideNow trên Amazon Web Services trong một môi trường production (`prod`) tại Region Singapore (`ap-southeast-1`). Môi trường được dựng thủ công, từng service console một, theo các hướng dẫn từng bước trong `guides/cloudformation/`. Các template chỉ đọc trong `iac/stacks/` và các giá trị trong `iac/params/prod.json` quy định mọi tên và cấu hình.
+Trong tám tuần thực tập, nhóm mình muốn làm một việc cụ thể: đưa RideNow lên AWS theo cách ai cũng làm lại được. Bản đề xuất này vì vậy chỉ nói về hạ tầng, tức cách chạy RideNow trên Amazon Web Services trong một môi trường production (`prod`) tại Region Singapore (`ap-southeast-1`). Môi trường được dựng thủ công, từng service console một, theo các hướng dẫn từng bước trong `guides/cloudformation/`. Các template chỉ đọc trong `iac/stacks/` và các giá trị trong `iac/params/prod.json` quy định mọi tên và cấu hình.
 
 - **Môi trường:** `prod`, region `ap-southeast-1`
-- **Thời gian dự án:** [OWNER: điền lịch trình]
-- **Quy mô nhóm và vai trò:** [OWNER: điền quy mô nhóm và vai trò]
+- **Thời gian dự án:** 8 tuần, từ 19/10 đến 11/12/2026 (thời gian thực tập của mình)
+- **Nhóm:** 5 thành viên. Phương Anh (trưởng nhóm, kiến trúc cloud và toàn bộ hạ tầng), Thuận, Đào, Hào và Nhi (các service và trang workshop).
+- **Công ty và mentor:** [OWNER: điền tên công ty và mentor]
 
 ---
 
@@ -94,21 +95,21 @@ Tài nguyên messaging: SNS topic `ridenow-prod-events`, các hàng đợi `ride
 
 ### 4. Tiến độ & Cột mốc
 
-Quy trình dựng theo thứ tự tạo trong các hướng dẫn. Ngày tháng và thời lượng không được ghi trong repository.
+Quy trình dựng theo thứ tự tạo trong các hướng dẫn. Các mốc thời gian dưới đây là kế hoạch tám tuần của riêng mình.
 
 | Bước | Hạng mục công việc | Lịch trình |
 | :--- | :--- | :--- |
-| **1. Danh tính và mạng** | IAM role và policy; VPC, subnet, NAT gateway, route table, security group. | [OWNER: điền ngày] |
-| **2. Registry, dữ liệu, messaging, cluster** | ECR repository và đẩy image; KMS, RDS và Secrets Manager; SNS, SQS và Valkey; EKS cluster và Fargate profile. Bốn nhóm này làm theo thứ tự bất kỳ sau bước 1. | [OWNER: điền ngày] |
-| **3. Add-on và dịch vụ** | Quy tắc truy cập mạng của pod, OIDC provider, IRSA role; AWS Load Balancer Controller và External Secrets; triển khai bảy dịch vụ. | [OWNER: điền ngày] |
-| **4. Frontend** | S3, CloudFront, role deploy tùy chọn; publish site lần đầu. Làm sau cùng, khi Ingress đã có địa chỉ ALB. | [OWNER: điền ngày] |
-| **5. Kiểm tra và gỡ bỏ** | Chạy smoke test và các bước kiểm tra trong hướng dẫn; xóa tài nguyên theo thứ tự phụ thuộc ngược khi hoàn tất. | [OWNER: điền ngày] |
+| **1. Danh tính và mạng** | IAM role và policy; VPC, subnet, NAT gateway, route table, security group. | Tuần 1 đến 4 (19/10 đến 13/11) |
+| **2. Registry, dữ liệu, messaging, cluster** | ECR repository và đẩy image; KMS, RDS và Secrets Manager; SNS, SQS và Valkey; EKS cluster và Fargate profile. Bốn nhóm này làm theo thứ tự bất kỳ sau bước 1. | Tuần 4 đến 6 (09/11 đến 27/11) |
+| **3. Add-on và dịch vụ** | Quy tắc truy cập mạng của pod, OIDC provider, IRSA role; AWS Load Balancer Controller và External Secrets; triển khai bảy dịch vụ. | Tuần 6 (23/11 đến 27/11) |
+| **4. Frontend** | S3, CloudFront, role deploy tùy chọn; publish site lần đầu. Làm sau cùng, khi Ingress đã có địa chỉ ALB. | Tuần 7 (30/11 đến 04/12) |
+| **5. Kiểm tra và gỡ bỏ** | Chạy smoke test và các bước kiểm tra trong hướng dẫn; xóa tài nguyên theo thứ tự phụ thuộc ngược khi hoàn tất. | Tuần 7 và 8 (02/12 đến 11/12) |
 
 ---
 
 ### 5. Ngân sách dự kiến
 
-Repository nêu các dịch vụ tính phí theo giờ kể từ lúc được tạo. Repository không có số liệu giá, nên tổng chi phí để chủ báo cáo điền.
+Các dịch vụ dưới đây tính phí theo giờ ngay từ lúc được tạo, nên cách tiết kiệm lớn nhất là xóa hết khi không làm việc. Các con số là ước tính của riêng mình dựa trên giá on-demand công khai ở Singapore, đã làm tròn, và cần đối chiếu lại bằng AWS Pricing Calculator.
 
 | Yếu tố chi phí | Cấu hình |
 | --- | --- |
@@ -122,8 +123,9 @@ Repository nêu các dịch vụ tính phí theo giờ kể từ lúc được t
 
 | Số liệu | Giá trị |
 | --- | --- |
-| Chi phí hằng tháng ước tính | [OWNER: điền ước tính chi phí] |
-| Hạn mức ngân sách | [OWNER: điền hạn mức ngân sách] |
+| Chi phí nếu chạy liên tục 24/7 | khoảng 0,87 USD mỗi giờ, tức khoảng 630 USD mỗi tháng |
+| Hạn mức ngân sách | 150 USD, chừa chỗ cho vài lần dựng lại toàn bộ |
+| Chi phí ước tính cho cả kỳ thực tập | khoảng 120 USD, vì môi trường chỉ chạy khi cả nhóm dựng và kiểm thử (khoảng 100 giờ) |
 
 ---
 
@@ -131,11 +133,11 @@ Repository nêu các dịch vụ tính phí theo giờ kể từ lúc được t
 
 | Rủi ro | Khả năng | Tác động | Biện pháp giảm thiểu |
 | --- | --- | --- | --- |
-| **Tài nguyên tính phí theo giờ bị để chạy** | [OWNER: đánh giá] | [OWNER: đánh giá] | Làm theo thứ tự gỡ bỏ. Xóa ALB của Ingress trước khi xóa VPC. |
-| **Sai thứ tự tạo** | [OWNER: đánh giá] | [OWNER: đánh giá] | Tạo tài nguyên add-on trước khi cài Load Balancer Controller và External Secrets. Tạo frontend sau cùng. |
-| **Lộ thông tin đăng nhập cơ sở dữ liệu** | [OWNER: đánh giá] | [OWNER: đánh giá] | Secret do RDS quản lý trong Secrets Manager, cấp qua External Secrets và IRSA. Cơ sở dữ liệu nằm trong private subnet. |
-| **Điểm vào để mở** | [OWNER: đánh giá] | [OWNER: đánh giá] | ALB dùng HTTP cổng 80, không có WAF và không giới hạn nguồn. `docs/ARCHITECTURE.md` liệt kê TLS, WAF và xác thực là các điểm chặn trước khi dùng thật. |
-| **Mất hoặc trùng sự kiện** | [OWNER: đánh giá] | [OWNER: đánh giá] | Dead-letter queue cho mọi hàng đợi, consumer idempotent, và sự kiện chỉ phát sau khi commit. |
+| **Tài nguyên tính phí theo giờ bị để chạy** | Trung bình | Cao | Làm theo thứ tự gỡ bỏ. Xóa ALB của Ingress trước khi xóa VPC. |
+| **Sai thứ tự tạo** | Cao | Trung bình | Tạo tài nguyên add-on trước khi cài Load Balancer Controller và External Secrets. Tạo frontend sau cùng. |
+| **Lộ thông tin đăng nhập cơ sở dữ liệu** | Thấp | Cao | Secret do RDS quản lý trong Secrets Manager, cấp qua External Secrets và IRSA. Cơ sở dữ liệu nằm trong private subnet. |
+| **Điểm vào để mở** | Trung bình | Trung bình | ALB dùng HTTP cổng 80, không có WAF và không giới hạn nguồn. `docs/ARCHITECTURE.md` liệt kê TLS, WAF và xác thực là các điểm chặn trước khi dùng thật. |
+| **Mất hoặc trùng sự kiện** | Thấp | Trung bình | Dead-letter queue cho mọi hàng đợi, consumer idempotent, và sự kiện chỉ phát sau khi commit. |
 
 ---
 
