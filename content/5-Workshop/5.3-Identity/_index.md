@@ -1,326 +1,201 @@
 ---
-title : "Identity"
-date : 2024-01-01
+title : "Identity and Access Management"
+date : 2024-01-01 
 weight : 3
 chapter : false
 pre : " <b> 5.3. </b> "
 ---
 
-This page creates the two IAM roles that the EKS cluster needs and five customer managed policies in the IAM console. IAM is a global service, so the region you open in the console does not matter.
+# PART 01. CONFIGURING IAM ON AWS CONSOLE
+## 1. Introduction to IAM
+First, I will configure IAM on the AWS Console to prepare the access permissions required for the RideNow system.
+IAM stands for Identity and Access Management, an AWS service for managing identities and controlling access to AWS resources.
+In RideNow, components such as the EKS Cluster, Trip Service, Payment Service, Matching Service, and Notification Worker require different access permissions.
+Therefore, I will first create 2 IAM Roles and 5 IAM Policies based on the `iac/stacks/01-iam.yaml` configuration file.
+**Illustration:** IAM Dashboard on the AWS Console.
+## 2. Creating an IAM Role for the EKS Cluster
+First, I open the AWS Console, search for the IAM service, and select Roles.
+Then, I select Create role to create a new IAM Role.
 
-## Set variables
+Under Trusted entity type, I select AWS service. Next, I select EKS and the EKS - Cluster use case so AWS can configure the appropriate trust relationship.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-eks-cluster-role-trusted-entity.png)
 
-Run this block in your Bash shell. It repeats the shared variables from [5.2](../5.2-Prerequiste/). The policy JSON below uses your account ID and region, so keep the output in view.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-eks-cluster-role-use-case.png)
+In the permissions configuration step, I use the `AmazonEKSClusterPolicy` policy required for the EKS Cluster.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-eks-cluster-role-attach-policy.png)
 
-```bash
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-AWS_REGION=$(aws configure get region)
-export AWS_DEFAULT_REGION="$AWS_REGION"
-ENV=prod
+Then, I name the Role:
+`ridenow-prod-eks-cluster-role`
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-eks-cluster-role-name.png)
 
-[ -n "$ACCOUNT_ID" ] || echo "STOP: ACCOUNT_ID is empty. Check your AWS credentials."
-[ -n "$AWS_REGION" ] || echo "STOP: AWS_REGION is empty. Set a default region for your AWS CLI profile."
+This Role will be used when creating the EKS Cluster, allowing EKS to perform the AWS resource operations needed to operate and manage the Cluster.
 
-echo "ACCOUNT_ID=$ACCOUNT_ID"
-echo "AWS_REGION=$AWS_REGION"
-echo "ENV=$ENV"
-```
+After opening the Role, I select the **Permissions** tab to check the assigned permissions.
+Here, I verify whether the `AmazonEKSClusterPolicy` policy has been attached to the Role.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-eks-cluster-role-permissions.png)
 
-Expected result (the account ID is masked):
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-eks-cluster-policy-details.png)
+This AWS-managed policy provides the permissions Amazon EKS needs to perform Cluster management tasks.
+If the Role does not have this policy, I select **Add permissions** and then **Attach policies**.
+Next, I search for `AmazonEKSClusterPolicy`, select it, and click **Add permissions** to attach it to the Role.
+Afterward, I check the Permissions list again to confirm that the policy has been attached successfully.
 
-```text
-ACCOUNT_ID=123456789012
-AWS_REGION=ap-southeast-1
-ENV=prod
-```
+Next, I switch to the **Trust relationships** tab.
 
-Wherever a policy below shows `{ACCOUNT_ID}` or `{AWS_REGION}`, replace the whole token, including the braces, with the value printed above.
+For the EKS Cluster Role, Amazon EKS must be the service allowed to assume the Role.
+Therefore, I check two important settings in the Trust policy.
+The first is `eks.amazonaws.com`, which identifies Amazon EKS as the trusted service.
+The second is `sts:AssumeRole`, which allows EKS to assume the IAM Role and use its assigned permissions.
+With this configuration, Amazon EKS can assume the Role to perform the operations needed to run the Cluster.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-eks-cluster-role-trust-policy.png)
 
-## What it creates
+If the Trust policy is not configured correctly, I select **Edit trust policy** to modify it.
+Here, I use JSON to specify Amazon EKS as the trusted service.
+Specifically, the `Effect` property is set to `Allow`, indicating that the action is permitted.
+The `Principal` property is set to `eks.amazonaws.com`, identifying Amazon EKS as the service allowed to assume the Role.
+Finally, the `Action` property is set to `sts:AssumeRole`, allowing EKS to assume the Role through AWS Security Token Service.
 
-| AWS resource type | Name |
-|---|---|
-| IAM role | `ridenow-prod-eks-cluster-role` |
-| IAM role | `ridenow-prod-eks-fargate-pod-execution-role` |
-| IAM customer managed policy | `ridenow-prod-app-access` |
-| IAM customer managed policy | `ridenow-prod-trip-service-messaging` |
-| IAM customer managed policy | `ridenow-prod-payment-service-messaging` |
-| IAM customer managed policy | `ridenow-prod-matching-service-messaging` |
-| IAM customer managed policy | `ridenow-prod-notification-worker-messaging` |
+After verifying these settings, I click **Update policy** to save the configuration.
+I have now completed the configuration and verification of the IAM Role for the EKS Cluster.
+This Role will be used in the next Amazon EKS deployment step, providing the Cluster with the permissions needed to operate on AWS infrastructure.
 
-## Depends on
+## 3. Creating an IAM Role for Fargate Pod Execution
+Next, I will create the second IAM Role for AWS Fargate.
+Fargate allows containers to run without directly managing EC2 servers.
+In RideNow, Fargate can be used to run application Pods inside EKS.
+To create the Role, I go to IAM, select Roles, and click Create role.
+Under Trusted entity type, I select AWS service and choose EKS - Fargate pod.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-fargate-pod-role-trusted-entity.png)
 
-Nothing. You need only the tools and identity from 5.2. The seven resources can be created in any order.
+Next, I attach the policy:
+`AmazonEKSFargatePodExecutionRolePolicy`
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-fargate-pod-role-attach-policy.png)
+Then, I enter the name:
+`ridenow-prod-eks-fargate-pod-execution-role`
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-fargate-pod-execution-role-name.png)
+Finally, I select Create role.
 
-## Create the resources
+This Role allows Fargate infrastructure to perform operations needed to run Pods, such as pulling container images from Amazon ECR.
+This Role does not directly grant AWS resource access permissions to the application code inside the Pods.
 
-### 1. Role `ridenow-prod-eks-cluster-role`
+## 4. Creating the App Access Policy
+After creating the two IAM Roles for the EKS Cluster and Fargate, I will create 5 IAM Policies for the microservices in RideNow.
+RideNow microservices need to interact with AWS services such as Amazon ECR, Secrets Manager, SQS, and SNS.  
+Therefore, I create Customer Managed Policies to control access for each service instead of granting full permissions to all microservices.  
+The system includes 5 policies:
+- AppAccessPolicy
+- TripServiceMessagingPolicy
+- PaymentServiceMessagingPolicy
+- MatchingServiceMessagingPolicy
+- NotificationWorkerMessagingPolicy  
+    Each policy manages a separate group of access permissions, making the system easier to manage and limiting unnecessary permissions.  
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-app-access-policy-configuration.png)
 
-1. Open **IAM**, choose **Roles**, then choose **Create role**.
-2. Set **Trusted entity type** to **Custom trust policy**.
-3. Delete the default JSON in the **Custom trust policy** box and paste the JSON below. Choose **Next**.
+First, I go to IAM, select Policies, and click Create policy.
+Here, I switch to JSON mode to define access permissions.
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": { "Service": "eks.amazonaws.com" },
-      "Action": ["sts:AssumeRole", "sts:TagSession"]
-    }
-  ]
-}
-```
+I use the PolicyDocument corresponding to `AppAccessPolicy` in `iac/stacks/01-iam.yaml`.
 
-4. Search for each of these AWS managed policies and tick it: `AmazonEKSClusterPolicy`, `AmazonEKSComputePolicy`, `AmazonEKSBlockStoragePolicyV2`, `AmazonEKSLoadBalancingPolicy`, `AmazonEKSNetworkingPolicy`. Choose **Next**.
-5. Set **Role name** to `ridenow-prod-eks-cluster-role`. Leave **Description** at the default.
-6. Choose **Create role**.
+After entering the JSON, I select Next and enter the name:
+`ridenow-prod-app-access`
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-app-access-policy-name.png)
 
-### 2. Role `ridenow-prod-eks-fargate-pod-execution-role`
+Finally, I select Create policy.
+This policy defines AWS resource access permissions for the RideNow application.
+The specific allowed actions and resources depend on the configured JSON content.
 
-1. Open **IAM**, choose **Roles**, then choose **Create role**.
-2. Set **Trusted entity type** to **Custom trust policy**.
-3. Delete the default JSON and paste the JSON below. Choose **Next**.
+## 5. Creating the Trip Service Messaging Policy
+Next, I will create a policy for Trip Service.
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": { "Service": "eks-fargate-pods.amazonaws.com" },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-```
+![IAM configuration screenshot](/fcj-workshop-ridenow/images/5.3-trip-service-messaging-policy-configuration.png)
 
-4. Search for `AmazonEKSFargatePodExecutionRolePolicy` and tick it. Choose **Next**.
-5. Set **Role name** to `ridenow-prod-eks-fargate-pod-execution-role`. Leave **Description** at the default.
-6. Choose **Create role**.
+Trip Service is responsible for handling ride-related business operations.
+In a microservices architecture, Trip Service may need to exchange messages with other components through AWS messaging services.
+I go to IAM, select Policies, and click Create policy.
+Then, I select JSON and enter the permissions defined in `TripServiceMessagingPolicy` in the YAML file.
 
-### 3. Policy `ridenow-prod-app-access`
+![IAM configuration screenshot](/fcj-workshop-ridenow/images/5.3-trip-service-messaging-policy-creation.png)
 
-1. Open **IAM**, choose **Policies**, then choose **Create policy**.
-2. Set **Policy editor** to **JSON**, delete the default JSON, and paste the JSON below.
-3. Replace each `{ACCOUNT_ID}` with your account ID. Leave the `*` region parts unchanged. Choose **Next**.
+I enter the policy name:
+`ridenow-prod-trip-service-messaging`
+Then, I select Create policy.
+This policy restricts access to the messaging resources required by Trip Service rather than granting broad access to the entire system.
+**Illustrations:**
+- JSON content of the Trip Service Messaging Policy.
+- Successful policy creation screen.
+## 6. Creating the Payment Service Messaging Policy
+Next, I will configure a policy for Payment Service.
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "EcrAuthToken",
-      "Effect": "Allow",
-      "Action": "ecr:GetAuthorizationToken",
-      "Resource": "*"
-    },
-    {
-      "Sid": "EcrPullRideNow",
-      "Effect": "Allow",
-      "Action": [
-        "ecr:BatchCheckLayerAvailability",
-        "ecr:GetDownloadUrlForLayer",
-        "ecr:BatchGetImage"
-      ],
-      "Resource": "arn:aws:ecr:*:{ACCOUNT_ID}:repository/ridenow/*"
-    },
-    {
-      "Sid": "ReadRideNowSecrets",
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:GetSecretValue",
-        "secretsmanager:DescribeSecret"
-      ],
-      "Resource": "arn:aws:secretsmanager:*:{ACCOUNT_ID}:secret:ridenow-prod-*"
-    }
-  ]
-}
-```
+![IAM configuration screenshot](/fcj-workshop-ridenow/images/5.3-payment-service-messaging-policy-configuration.png)
 
-4. Set **Policy name** to `ridenow-prod-app-access`.
-5. Set **Description** to the text below. The description cannot be edited later, so type it exactly.
+Payment Service is responsible for handling payment-related business operations in RideNow.
+Therefore, it may need the messaging system to send or receive payment-processing messages.
+As in the previous steps, I go to IAM, select Policies, and click Create policy.
+I enter the PolicyDocument corresponding to `PaymentServiceMessagingPolicy`.
+The policy name is:
+`ridenow-prod-payment-service-messaging`
 
-```text
-Scoped runtime access for RideNow pods via IRSA: pull images, read DB secrets, and (where present) use the environment's queues and event bus.
-```
+![IAM configuration screenshot](/fcj-workshop-ridenow/images/5.3-payment-service-messaging-policy-name.png)
 
-6. Choose **Create policy**.
+After reviewing the content, I select Create policy to finish.
+Creating a separate policy for Payment Service separates payment-related access permissions from those of other microservices.
+**Illustrations:**
+- JSON content of the Payment Service Messaging Policy.
+- Successful policy creation screen.
+## 7. Creating the Matching Service Messaging Policy
+Next, I create a policy for Matching Service.
 
-### 4. Policy `ridenow-prod-trip-service-messaging`
+![IAM configuration screenshot](/fcj-workshop-ridenow/images/5.3-matching-service-messaging-policy-configuration.png)
 
-1. Open **IAM**, choose **Policies**, then choose **Create policy**.
-2. Set **Policy editor** to **JSON**, delete the default JSON, and paste the JSON below.
-3. Replace each `{ACCOUNT_ID}` and `{AWS_REGION}` with your values. Choose **Next**.
+Matching Service is responsible for matching drivers with customer ride requests.
+During operation, Matching Service may need to exchange messages with other services to receive matching requests or send processing results.
+I go to IAM, select Policies, and click Create policy.
+Then, I enter the JSON defined in `MatchingServiceMessagingPolicy`.
+I enter the name:
+`ridenow-prod-matching-service-messaging`
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "PublishToRideNowTopic",
-      "Effect": "Allow",
-      "Action": "sns:Publish",
-      "Resource": "arn:aws:sns:{AWS_REGION}:{ACCOUNT_ID}:ridenow-prod-events"
-    }
-  ]
-}
-```
+![IAM configuration screenshot](/fcj-workshop-ridenow/images/5.3-matching-service-messaging-policy-name.png)
 
-4. Set **Policy name** to `ridenow-prod-trip-service-messaging`.
-5. Set **Description** to `trip-service publishes trip events to the RideNow topic.`
-6. Choose **Create policy**.
+Finally, I select Create policy.
+This policy defines the scope of messaging permissions specifically for Matching Service.
+**Illustrations:**
+- JSON content of the Matching Service Messaging Policy.
+- Successful policy creation screen.
+## 8. Creating the Notification Worker Messaging Policy
+The last policy I need to create is the Notification Worker Messaging Policy.
 
-### 5. Policy `ridenow-prod-payment-service-messaging`
+![IAM configuration screenshot](/fcj-workshop-ridenow/images/5.3-notification-worker-messaging-policy-configuration.png)
 
-1. Open **IAM**, choose **Policies**, then choose **Create policy**.
-2. Set **Policy editor** to **JSON**, delete the default JSON, and paste the JSON below.
-3. Replace each `{ACCOUNT_ID}` and `{AWS_REGION}` with your values. Choose **Next**.
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "PublishToRideNowTopic",
-      "Effect": "Allow",
-      "Action": "sns:Publish",
-      "Resource": "arn:aws:sns:{AWS_REGION}:{ACCOUNT_ID}:ridenow-prod-events"
-    },
-    {
-      "Sid": "ConsumePaymentQueue",
-      "Effect": "Allow",
-      "Action": [
-        "sqs:ReceiveMessage",
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes"
-      ],
-      "Resource": "arn:aws:sqs:{AWS_REGION}:{ACCOUNT_ID}:ridenow-prod-payment"
-    }
-  ]
-}
-```
-
-4. Set **Policy name** to `ridenow-prod-payment-service-messaging`.
-5. Set **Description** to `payment-service publishes payment events and consumes the payment queue.`
-6. Choose **Create policy**.
-
-### 6. Policy `ridenow-prod-matching-service-messaging`
-
-1. Open **IAM**, choose **Policies**, then choose **Create policy**.
-2. Set **Policy editor** to **JSON**, delete the default JSON, and paste the JSON below.
-3. Replace each `{ACCOUNT_ID}` and `{AWS_REGION}` with your values. Choose **Next**.
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "PublishToRideNowTopic",
-      "Effect": "Allow",
-      "Action": "sns:Publish",
-      "Resource": "arn:aws:sns:{AWS_REGION}:{ACCOUNT_ID}:ridenow-prod-events"
-    },
-    {
-      "Sid": "ConsumeMatchingQueue",
-      "Effect": "Allow",
-      "Action": [
-        "sqs:ReceiveMessage",
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes"
-      ],
-      "Resource": "arn:aws:sqs:{AWS_REGION}:{ACCOUNT_ID}:ridenow-prod-matching"
-    }
-  ]
-}
-```
-
-4. Set **Policy name** to `ridenow-prod-matching-service-messaging`.
-5. Set **Description** to `matching-service publishes match events and consumes the matching queue.`
-6. Choose **Create policy**.
-
-### 7. Policy `ridenow-prod-notification-worker-messaging`
-
-1. Open **IAM**, choose **Policies**, then choose **Create policy**.
-2. Set **Policy editor** to **JSON**, delete the default JSON, and paste the JSON below.
-3. Replace each `{ACCOUNT_ID}` and `{AWS_REGION}` with your values. Choose **Next**.
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "ConsumeNotificationsQueue",
-      "Effect": "Allow",
-      "Action": [
-        "sqs:ReceiveMessage",
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes"
-      ],
-      "Resource": "arn:aws:sqs:{AWS_REGION}:{ACCOUNT_ID}:ridenow-prod-notifications"
-    }
-  ]
-}
-```
-
-4. Set **Policy name** to `ridenow-prod-notification-worker-messaging`.
-5. Set **Description** to `notification-worker consumes the notifications queue.`
-6. Choose **Create policy**.
-
-## Values to record
-
-The two role ARNs are used when you create the EKS cluster in 5.8. Load them into variables now. The block looks each role up by name.
-
-```bash
-CLUSTER_ROLE_ARN=$(aws iam get-role --role-name "ridenow-${ENV}-eks-cluster-role" \
-  --query Role.Arn --output text)
-FARGATE_POD_ROLE_ARN=$(aws iam get-role --role-name "ridenow-${ENV}-eks-fargate-pod-execution-role" \
-  --query Role.Arn --output text)
-
-[ -n "$CLUSTER_ROLE_ARN" ] || echo "STOP: CLUSTER_ROLE_ARN is empty. Create the role ridenow-prod-eks-cluster-role first."
-[ -n "$FARGATE_POD_ROLE_ARN" ] || echo "STOP: FARGATE_POD_ROLE_ARN is empty. Create the role ridenow-prod-eks-fargate-pod-execution-role first."
-
-echo "CLUSTER_ROLE_ARN=$CLUSTER_ROLE_ARN"
-echo "FARGATE_POD_ROLE_ARN=$FARGATE_POD_ROLE_ARN"
-```
-
-Expected result (the account ID is masked):
-
-```text
-CLUSTER_ROLE_ARN=arn:aws:iam::123456789012:role/ridenow-prod-eks-cluster-role
-FARGATE_POD_ROLE_ARN=arn:aws:iam::123456789012:role/ridenow-prod-eks-fargate-pod-execution-role
-```
-
-If a role is missing, the command prints an AWS error and the variable stays empty. Fix the role name and run the block again.
-
-The five policies need no variable now. The messaging policies are attached to service roles in 5.9, where you select them by name in the console.
-
-## Post-deploy steps
-
-No post-deploy step is needed for this page.
-
-## Verify
-
-Run this block:
-
-```bash
-aws iam list-policies --scope Local \
-  --query "Policies[?starts_with(PolicyName,'ridenow-$ENV-')].PolicyName" --output text | tr '\t' '\n'
-echo "$CLUSTER_ROLE_ARN"
-echo "$FARGATE_POD_ROLE_ARN"
-```
-
-Expected result (the account ID is masked; the policy order can differ). A missing line means that resource was not created or is misspelled:
-
-```text
-ridenow-prod-app-access
-ridenow-prod-trip-service-messaging
-ridenow-prod-payment-service-messaging
-ridenow-prod-matching-service-messaging
-ridenow-prod-notification-worker-messaging
-arn:aws:iam::123456789012:role/ridenow-prod-eks-cluster-role
-arn:aws:iam::123456789012:role/ridenow-prod-eks-fargate-pod-execution-role
-```
-
-Next: [5.4 Network](../5.4-Network/).
+Notification Worker handles notification tasks in the RideNow system.
+For example, when a ride is confirmed or its status changes, the system may generate a message for Notification Worker to receive and process.
+To create the policy, I go to IAM, select Policies, and click Create policy.
+I enter the JSON content corresponding to `NotificationWorkerMessagingPolicy` from the YAML file.
+Then, I enter the name:
+`ridenow-prod-notification-worker-messaging`
+Finally, I select Create policy.
+This policy manages the messaging permissions required by Notification Worker.
+**Illustrations:**
+- JSON content of the Notification Worker Messaging Policy.
+- Successful policy creation screen.
+## 9. Verifying the IAM Configuration
+After completing the configuration steps, I will verify all resources created on the AWS Console.
+First, under IAM Roles, I check the two Roles:
+- `ridenow-prod-eks-cluster-role`
+- `ridenow-prod-eks-fargate-pod-execution-role`
+Next, under IAM Policies, I check the five policies:
+- `ridenow-prod-app-access`
+- `ridenow-prod-trip-service-messaging`
+- `ridenow-prod-payment-service-messaging`
+- `ridenow-prod-matching-service-messaging`
+- `ridenow-prod-notification-worker-messaging`
+In addition to checking their names, I review the defined permissions, the trust relationships of both Roles, and the attached policies.
+If all resources match the configuration, I have completed IAM preparation for the RideNow system.
+**Illustrations:**
+- List of the 2 created IAM Roles.
+- List of the 5 created customer managed policies.
+## 10. Conclusion
+In the first step of deploying RideNow to AWS, I have configured a total of 7 IAM resources: 2 IAM Roles and 5 IAM Policies.
+The two IAM Roles provide permissions for the EKS Cluster and Fargate infrastructure.
+The five IAM Policies define access permissions for the application and microservices, including Trip Service, Payment Service, Matching Service, and Notification Worker.
+Separating these policies makes access management clearer and supports the principle of least privilege, meaning each component receives only the permissions it actually needs.
+After completing IAM configuration, the system has the foundational access controls needed to deploy additional AWS resources in the next steps.

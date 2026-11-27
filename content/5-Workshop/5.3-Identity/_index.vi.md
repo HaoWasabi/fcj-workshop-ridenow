@@ -6,321 +6,160 @@ chapter : false
 pre : " <b> 5.3. </b> "
 ---
 
-Trang này tạo hai IAM role mà cluster EKS cần và năm customer managed policy trong IAM console. IAM là dịch vụ toàn cầu, nên region bạn mở trong console không ảnh hưởng.
+# PHẦN 01. CẤU HÌNH IAM TRÊN AWS CONSOLE
+## 1. Giới thiệu IAM
+Đầu tiên, em sẽ tiến hành cấu hình IAM trên AWS Console để chuẩn bị các quyền truy cập cần thiết cho hệ thống RideNow.
+IAM là viết tắt của Identity and Access Management, đây là dịch vụ của AWS dùng để quản lý danh tính và phân quyền truy cập vào các tài nguyên AWS.
+Trong hệ thống RideNow, các thành phần như EKS Cluster, Trip Service, Payment Service, Matching Service và Notification Worker cần có những quyền truy cập khác nhau.
+Vì vậy, ở bước đầu tiên, em sẽ tạo 2 IAM Roles và 5 IAM Policies dựa trên file cấu hình `iac/stacks/01-iam.yaml`.
+**Hình ảnh minh họa:** Giao diện IAM Dashboard trên AWS Console.
+## 2. Tạo IAM Role cho EKS Cluster
+Đầu tiên, em vào AWS Console, tìm kiếm dịch vụ IAM và chọn mục Roles.
+Sau đó, em chọn Create role để tạo một IAM Role mới.
 
-## Set variables
+Ở phần Trusted entity type, em chọn AWS service. Tiếp theo, em chọn EKS và trường hợp sử dụng EKS - Cluster để AWS thiết lập quan hệ tin cậy phù hợp.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-eks-cluster-role-trusted-entity.png)
 
-Chạy khối lệnh này trong shell Bash. Khối này lặp lại các biến dùng chung từ [5.2](../5.2-Prerequiste/). JSON của policy bên dưới dùng account ID và region của bạn, nên hãy giữ kết quả hiển thị để đối chiếu.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-eks-cluster-role-use-case.png)
+Ở bước cấu hình quyền, em sử dụng policy `AmazonEKSClusterPolicy` theo yêu cầu dành cho EKS Cluster.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-eks-cluster-role-attach-policy.png)
 
-```bash
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-AWS_REGION=$(aws configure get region)
-export AWS_DEFAULT_REGION="$AWS_REGION"
-ENV=prod
+Sau đó, em đặt tên Role là:
+`ridenow-prod-eks-cluster-role`
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-eks-cluster-role-name.png)
 
-[ -n "$ACCOUNT_ID" ] || echo "STOP: ACCOUNT_ID is empty. Check your AWS credentials."
-[ -n "$AWS_REGION" ] || echo "STOP: AWS_REGION is empty. Set a default region for your AWS CLI profile."
+Role này sẽ được sử dụng khi tạo EKS Cluster, cho phép dịch vụ EKS thực hiện các thao tác cần thiết với tài nguyên AWS để vận hành và quản lý Cluster.
 
-echo "ACCOUNT_ID=$ACCOUNT_ID"
-echo "AWS_REGION=$AWS_REGION"
-echo "ENV=$ENV"
-```
+Sau khi truy cập vào Role, em chọn tab **Permissions** để kiểm tra những quyền đã được cấp.
+Tại đây, em kiểm tra xem Role đã được gắn policy `AmazonEKSClusterPolicy` hay chưa.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-eks-cluster-role-permissions.png)
 
-Kết quả mong đợi (account ID đã được che):
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-eks-cluster-policy-details.png)
+Đây là policy do AWS quản lý, cung cấp những quyền cần thiết để Amazon EKS thực hiện các tác vụ quản lý Cluster.
+Nếu Role chưa có policy này, em chọn **Add permissions**, sau đó chọn **Attach policies**.
+Tiếp theo, em tìm kiếm `AmazonEKSClusterPolicy`, tích chọn và nhấn **Add permissions** để gắn policy vào Role.
+Sau khi hoàn thành, em kiểm tra lại danh sách Permissions để bảo đảm policy đã được gắn thành công.
 
-```text
-ACCOUNT_ID=123456789012
-AWS_REGION=ap-southeast-1
-ENV=prod
-```
+Tiếp theo, em chuyển sang tab **Trust relationships**.
 
-Ở chỗ nào policy bên dưới có `{ACCOUNT_ID}` hoặc `{AWS_REGION}`, hãy thay toàn bộ token, gồm cả dấu ngoặc nhọn, bằng giá trị đã in ở trên.
+Đối với EKS Cluster Role, dịch vụ được phép đảm nhận Role phải là Amazon EKS.
+Vì vậy, trong phần Trust policy, em kiểm tra hai thông tin quan trọng.
+Thông tin thứ nhất là `eks.amazonaws.com`, xác định Amazon EKS là dịch vụ được tin cậy.
+Thông tin thứ hai là `sts:AssumeRole`, cho phép dịch vụ EKS đảm nhận IAM Role để sử dụng các quyền đã được cấp.
+Nhờ cấu hình này, Amazon EKS có thể đảm nhận Role để thực hiện các thao tác cần thiết trong quá trình vận hành Cluster.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-eks-cluster-role-trust-policy.png)
 
-## What it creates
+Trong trường hợp Trust policy chưa được cấu hình chính xác, em chọn **Edit trust policy** để chỉnh sửa.
+Tại đây, em sử dụng cấu hình JSON để khai báo dịch vụ Amazon EKS là đối tượng được tin cậy.
+Cụ thể, thuộc tính `Effect` có giá trị `Allow`, thể hiện việc cho phép thực hiện hành động.
+Thuộc tính `Principal` được cấu hình là `eks.amazonaws.com`, xác định dịch vụ Amazon EKS được phép đảm nhận Role.
+Cuối cùng, thuộc tính `Action` có giá trị `sts:AssumeRole`, cho phép dịch vụ EKS sử dụng cơ chế AWS Security Token Service để đảm nhận Role.
 
-| Loại tài nguyên AWS | Tên |
-|---|---|
-| IAM role | `ridenow-prod-eks-cluster-role` |
-| IAM role | `ridenow-prod-eks-fargate-pod-execution-role` |
-| IAM customer managed policy | `ridenow-prod-app-access` |
-| IAM customer managed policy | `ridenow-prod-trip-service-messaging` |
-| IAM customer managed policy | `ridenow-prod-payment-service-messaging` |
-| IAM customer managed policy | `ridenow-prod-matching-service-messaging` |
-| IAM customer managed policy | `ridenow-prod-notification-worker-messaging` |
+Sau khi kiểm tra các thông tin, em nhấn **Update policy** để lưu cấu hình.
+Như vậy, em đã hoàn thành việc kiểm tra và cấu hình IAM Role cho EKS Cluster.
+Role này sẽ được sử dụng trong bước triển khai Amazon EKS tiếp theo, giúp Cluster có được những quyền cần thiết để hoạt động trên hạ tầng AWS.
 
-## Depends on
+## 3. Tạo IAM Role cho Fargate Pod Execution
+Tiếp theo, em sẽ tạo IAM Role thứ hai dành cho AWS Fargate.
+Fargate là dịch vụ cho phép chạy các container mà không cần trực tiếp quản lý máy chủ EC2.
+Trong hệ thống RideNow, Fargate có thể được sử dụng để chạy các Pod của ứng dụng bên trong EKS.
+Để tạo Role, em tiếp tục vào IAM, chọn Roles và Create role.
+Ở phần Trusted entity type, em chọn AWS service và chọn EKS - Fargate pod.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-fargate-pod-role-trusted-entity.png)
 
-Không có. Bạn chỉ cần công cụ và danh tính đã chuẩn bị ở 5.2. Bảy tài nguyên này có thể tạo theo thứ tự bất kỳ.
+Tiếp theo, em gắn policy:
+`AmazonEKSFargatePodExecutionRolePolicy`
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-fargate-pod-role-attach-policy.png)
+Sau đó, em đặt tên:
+`ridenow-prod-eks-fargate-pod-execution-role`
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-fargate-pod-execution-role-name.png)
+Cuối cùng, em chọn Create role.
 
-## Create the resources
+Role này cho phép hạ tầng Fargate thực hiện những thao tác cần thiết khi chạy Pod, chẳng hạn như tải container image từ Amazon ECR.
+Role này không trực tiếp cấp quyền truy cập tài nguyên AWS cho mã nguồn ứng dụng bên trong Pod.
 
-### 1. Role `ridenow-prod-eks-cluster-role`
+## 4. Tạo App Access Policy
+Sau khi hoàn thành việc tạo hai IAM Roles cho EKS Cluster và Fargate, tiếp theo em tiến hành tạo 5 IAM Policies dành cho các microservices trong hệ thống RideNow.
+Trong hệ thống RideNow, các microservices cần tương tác với nhiều dịch vụ AWS như Amazon ECR, Secrets Manager, SQS và SNS.  
+Vì vậy, em tạo các Customer Managed Policies để phân quyền truy cập cho từng dịch vụ, thay vì cấp toàn bộ quyền cho tất cả microservices.  
+Hệ thống gồm 5 Policies:
+- AppAccessPolicy
+- TripServiceMessagingPolicy
+- PaymentServiceMessagingPolicy
+- MatchingServiceMessagingPolicy
+- NotificationWorkerMessagingPolicy  
+    Mỗi Policy sẽ đảm nhiệm một nhóm quyền truy cập riêng, giúp hệ thống dễ quản lý và hạn chế việc cấp quyền không cần thiết.  
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-app-access-policy-configuration.png)
 
-1. Mở **IAM**, chọn **Roles**, rồi chọn **Create role**.
-2. Đặt **Trusted entity type** là **Custom trust policy**.
-3. Xóa JSON mặc định trong ô **Custom trust policy** và dán JSON bên dưới. Chọn **Next**.
+Đầu tiên, em vào IAM, chọn Policies và chọn Create policy.
+Tại đây, em chuyển sang chế độ JSON để khai báo các quyền truy cập.
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": { "Service": "eks.amazonaws.com" },
-      "Action": ["sts:AssumeRole", "sts:TagSession"]
-    }
-  ]
-}
-```
+Em sẽ sử dụng phần PolicyDocument tương ứng với `AppAccessPolicy` trong file `iac/stacks/01-iam.yaml`.
 
-4. Tìm từng AWS managed policy sau và chọn: `AmazonEKSClusterPolicy`, `AmazonEKSComputePolicy`, `AmazonEKSBlockStoragePolicyV2`, `AmazonEKSLoadBalancingPolicy`, `AmazonEKSNetworkingPolicy`. Chọn **Next**.
-5. Đặt **Role name** là `ridenow-prod-eks-cluster-role`. Giữ nguyên **Description** mặc định.
-6. Chọn **Create role**.
+Sau khi nhập nội dung JSON, em chọn Next và đặt tên:
+`ridenow-prod-app-access`
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-app-access-policy-name.png)
 
-### 2. Role `ridenow-prod-eks-fargate-pod-execution-role`
+Cuối cùng, em chọn Create policy.
+Policy này được sử dụng để định nghĩa các quyền truy cập tài nguyên AWS dành cho ứng dụng RideNow.
+Các hành động và tài nguyên cụ thể mà policy cho phép sẽ phụ thuộc vào nội dung JSON đã cấu hình.
 
-1. Mở **IAM**, chọn **Roles**, rồi chọn **Create role**.
-2. Đặt **Trusted entity type** là **Custom trust policy**.
-3. Xóa JSON mặc định và dán JSON bên dưới. Chọn **Next**.
+## 5. Tạo Trip Service Messaging Policy
+Tiếp theo, em sẽ tạo policy dành cho Trip Service.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-trip-service-messaging-policy-configuration.png)
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": { "Service": "eks-fargate-pods.amazonaws.com" },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-```
 
-4. Tìm `AmazonEKSFargatePodExecutionRolePolicy` và chọn. Chọn **Next**.
-5. Đặt **Role name** là `ridenow-prod-eks-fargate-pod-execution-role`. Giữ nguyên **Description** mặc định.
-6. Chọn **Create role**.
+Trip Service là microservice chịu trách nhiệm xử lý các nghiệp vụ liên quan đến chuyến xe.
+Trong kiến trúc microservices, Trip Service có thể cần trao đổi thông điệp với các thành phần khác thông qua dịch vụ messaging của AWS.
+Em tiếp tục vào IAM, chọn Policies và Create policy.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-trip-service-messaging-policy-creation.png)
+Sau đó, em chọn JSON và nhập nội dung quyền từ `TripServiceMessagingPolicy` trong file YAML.
+Em đặt tên policy là:
+`ridenow-prod-trip-service-messaging`
+Sau đó, em chọn Create policy.
+Mục đích của policy này là giới hạn quyền truy cập vào các tài nguyên messaging cần thiết cho Trip Service, thay vì cấp quyền truy cập rộng cho toàn bộ hệ thống.
 
-### 3. Policy `ridenow-prod-app-access`
+## 6. Tạo Payment Service Messaging Policy
+Tiếp theo, em sẽ cấu hình policy dành cho Payment Service.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-payment-service-messaging-policy-configuration.png)
+Payment Service chịu trách nhiệm xử lý các nghiệp vụ liên quan đến thanh toán trong hệ thống RideNow.
+Do đó, service này có thể cần sử dụng hệ thống messaging để gửi hoặc nhận các thông điệp liên quan đến quá trình thanh toán.
+Tương tự các bước trước, em vào IAM, chọn Policies, sau đó chọn Create policy.
+Em nhập phần PolicyDocument tương ứng với `PaymentServiceMessagingPolicy`.
+Tên policy là:
+`ridenow-prod-payment-service-messaging`
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-payment-service-messaging-policy-name.png)
+Sau khi kiểm tra lại nội dung, em chọn Create policy để hoàn tất.
+Việc tạo policy riêng cho Payment Service giúp phân tách quyền truy cập của dịch vụ thanh toán với các microservices khác.
 
-1. Mở **IAM**, chọn **Policies**, rồi chọn **Create policy**.
-2. Đặt **Policy editor** là **JSON**, xóa JSON mặc định và dán JSON bên dưới.
-3. Thay mỗi `{ACCOUNT_ID}` bằng account ID của bạn. Giữ nguyên các phần region là `*`. Chọn **Next**.
+## 7. Tạo Matching Service Messaging Policy
+Tiếp theo, em tạo policy dành cho Matching Service.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-matching-service-messaging-policy-configuration.png)
+Matching Service là thành phần chịu trách nhiệm xử lý nghiệp vụ ghép tài xế với yêu cầu đặt xe của khách hàng.
+Trong quá trình hoạt động, Matching Service có thể cần trao đổi thông điệp với các service khác để nhận yêu cầu ghép xe hoặc gửi kết quả xử lý.
+Em vào IAM, chọn Policies và Create policy.
+Sau đó, em nhập JSON được định nghĩa trong `MatchingServiceMessagingPolicy`.
+Em đặt tên:
+`ridenow-prod-matching-service-messaging`
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-matching-service-messaging-policy-name.png)
+Cuối cùng, em chọn Create policy.
+Policy này giúp xác định phạm vi quyền truy cập messaging dành riêng cho Matching Service.
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "EcrAuthToken",
-      "Effect": "Allow",
-      "Action": "ecr:GetAuthorizationToken",
-      "Resource": "*"
-    },
-    {
-      "Sid": "EcrPullRideNow",
-      "Effect": "Allow",
-      "Action": [
-        "ecr:BatchCheckLayerAvailability",
-        "ecr:GetDownloadUrlForLayer",
-        "ecr:BatchGetImage"
-      ],
-      "Resource": "arn:aws:ecr:*:{ACCOUNT_ID}:repository/ridenow/*"
-    },
-    {
-      "Sid": "ReadRideNowSecrets",
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:GetSecretValue",
-        "secretsmanager:DescribeSecret"
-      ],
-      "Resource": "arn:aws:secretsmanager:*:{ACCOUNT_ID}:secret:ridenow-prod-*"
-    }
-  ]
-}
-```
+## 8. Tạo Notification Worker Messaging Policy
+Policy cuối cùng em cần tạo là Notification Worker Messaging Policy.
+![Ảnh minh họa cấu hình IAM](/fcj-workshop-ridenow/images/5.3-notification-worker-messaging-policy-configuration.png)
+Notification Worker là thành phần xử lý các tác vụ thông báo trong hệ thống RideNow.
+Ví dụ, khi một chuyến xe được xác nhận hoặc trạng thái chuyến xe thay đổi, hệ thống có thể phát sinh thông điệp để Notification Worker tiếp nhận và xử lý.
+Để tạo policy, em tiếp tục vào IAM, chọn Policies và Create policy.
+Em nhập nội dung JSON tương ứng với `NotificationWorkerMessagingPolicy` trong file YAML.
+Sau đó, em đặt tên:
+`ridenow-prod-notification-worker-messaging`
+Cuối cùng, em chọn Create policy.
+Policy này được thiết kế để quản lý các quyền messaging cần thiết cho Notification Worker.
 
-4. Đặt **Policy name** là `ridenow-prod-app-access`.
-5. Đặt **Description** là đoạn văn bản bên dưới. Không sửa được description sau khi tạo, nên hãy gõ chính xác.
-
-```text
-Scoped runtime access for RideNow pods via IRSA: pull images, read DB secrets, and (where present) use the environment's queues and event bus.
-```
-
-6. Chọn **Create policy**.
-
-### 4. Policy `ridenow-prod-trip-service-messaging`
-
-1. Mở **IAM**, chọn **Policies**, rồi chọn **Create policy**.
-2. Đặt **Policy editor** là **JSON**, xóa JSON mặc định và dán JSON bên dưới.
-3. Thay mỗi `{ACCOUNT_ID}` và `{AWS_REGION}` bằng giá trị của bạn. Chọn **Next**.
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "PublishToRideNowTopic",
-      "Effect": "Allow",
-      "Action": "sns:Publish",
-      "Resource": "arn:aws:sns:{AWS_REGION}:{ACCOUNT_ID}:ridenow-prod-events"
-    }
-  ]
-}
-```
-
-4. Đặt **Policy name** là `ridenow-prod-trip-service-messaging`.
-5. Đặt **Description** là `trip-service publishes trip events to the RideNow topic.`
-6. Chọn **Create policy**.
-
-### 5. Policy `ridenow-prod-payment-service-messaging`
-
-1. Mở **IAM**, chọn **Policies**, rồi chọn **Create policy**.
-2. Đặt **Policy editor** là **JSON**, xóa JSON mặc định và dán JSON bên dưới.
-3. Thay mỗi `{ACCOUNT_ID}` và `{AWS_REGION}` bằng giá trị của bạn. Chọn **Next**.
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "PublishToRideNowTopic",
-      "Effect": "Allow",
-      "Action": "sns:Publish",
-      "Resource": "arn:aws:sns:{AWS_REGION}:{ACCOUNT_ID}:ridenow-prod-events"
-    },
-    {
-      "Sid": "ConsumePaymentQueue",
-      "Effect": "Allow",
-      "Action": [
-        "sqs:ReceiveMessage",
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes"
-      ],
-      "Resource": "arn:aws:sqs:{AWS_REGION}:{ACCOUNT_ID}:ridenow-prod-payment"
-    }
-  ]
-}
-```
-
-4. Đặt **Policy name** là `ridenow-prod-payment-service-messaging`.
-5. Đặt **Description** là `payment-service publishes payment events and consumes the payment queue.`
-6. Chọn **Create policy**.
-
-### 6. Policy `ridenow-prod-matching-service-messaging`
-
-1. Mở **IAM**, chọn **Policies**, rồi chọn **Create policy**.
-2. Đặt **Policy editor** là **JSON**, xóa JSON mặc định và dán JSON bên dưới.
-3. Thay mỗi `{ACCOUNT_ID}` và `{AWS_REGION}` bằng giá trị của bạn. Chọn **Next**.
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "PublishToRideNowTopic",
-      "Effect": "Allow",
-      "Action": "sns:Publish",
-      "Resource": "arn:aws:sns:{AWS_REGION}:{ACCOUNT_ID}:ridenow-prod-events"
-    },
-    {
-      "Sid": "ConsumeMatchingQueue",
-      "Effect": "Allow",
-      "Action": [
-        "sqs:ReceiveMessage",
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes"
-      ],
-      "Resource": "arn:aws:sqs:{AWS_REGION}:{ACCOUNT_ID}:ridenow-prod-matching"
-    }
-  ]
-}
-```
-
-4. Đặt **Policy name** là `ridenow-prod-matching-service-messaging`.
-5. Đặt **Description** là `matching-service publishes match events and consumes the matching queue.`
-6. Chọn **Create policy**.
-
-### 7. Policy `ridenow-prod-notification-worker-messaging`
-
-1. Mở **IAM**, chọn **Policies**, rồi chọn **Create policy**.
-2. Đặt **Policy editor** là **JSON**, xóa JSON mặc định và dán JSON bên dưới.
-3. Thay mỗi `{ACCOUNT_ID}` và `{AWS_REGION}` bằng giá trị của bạn. Chọn **Next**.
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "ConsumeNotificationsQueue",
-      "Effect": "Allow",
-      "Action": [
-        "sqs:ReceiveMessage",
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes"
-      ],
-      "Resource": "arn:aws:sqs:{AWS_REGION}:{ACCOUNT_ID}:ridenow-prod-notifications"
-    }
-  ]
-}
-```
-
-4. Đặt **Policy name** là `ridenow-prod-notification-worker-messaging`.
-5. Đặt **Description** là `notification-worker consumes the notifications queue.`
-6. Chọn **Create policy**.
-
-## Values to record
-
-Hai ARN của role được dùng khi bạn tạo cluster EKS ở 5.8. Hãy nạp chúng vào biến ngay bây giờ. Khối lệnh tra cứu từng role theo tên.
-
-```bash
-CLUSTER_ROLE_ARN=$(aws iam get-role --role-name "ridenow-${ENV}-eks-cluster-role" \
-  --query Role.Arn --output text)
-FARGATE_POD_ROLE_ARN=$(aws iam get-role --role-name "ridenow-${ENV}-eks-fargate-pod-execution-role" \
-  --query Role.Arn --output text)
-
-[ -n "$CLUSTER_ROLE_ARN" ] || echo "STOP: CLUSTER_ROLE_ARN is empty. Create the role ridenow-prod-eks-cluster-role first."
-[ -n "$FARGATE_POD_ROLE_ARN" ] || echo "STOP: FARGATE_POD_ROLE_ARN is empty. Create the role ridenow-prod-eks-fargate-pod-execution-role first."
-
-echo "CLUSTER_ROLE_ARN=$CLUSTER_ROLE_ARN"
-echo "FARGATE_POD_ROLE_ARN=$FARGATE_POD_ROLE_ARN"
-```
-
-Kết quả mong đợi (account ID đã được che):
-
-```text
-CLUSTER_ROLE_ARN=arn:aws:iam::123456789012:role/ridenow-prod-eks-cluster-role
-FARGATE_POD_ROLE_ARN=arn:aws:iam::123456789012:role/ridenow-prod-eks-fargate-pod-execution-role
-```
-
-Nếu thiếu một role, lệnh in lỗi của AWS và biến vẫn rỗng. Hãy sửa tên role rồi chạy lại khối lệnh.
-
-Năm policy chưa cần biến nào. Các messaging policy được gắn vào service role ở 5.9, nơi bạn chọn chúng theo tên trong console.
-
-## Post-deploy steps
-
-Trang này không cần bước nào sau khi tạo.
-
-## Verify
-
-Chạy khối lệnh này:
-
-```bash
-aws iam list-policies --scope Local \
-  --query "Policies[?starts_with(PolicyName,'ridenow-$ENV-')].PolicyName" --output text | tr '\t' '\n'
-echo "$CLUSTER_ROLE_ARN"
-echo "$FARGATE_POD_ROLE_ARN"
-```
-
-Kết quả mong đợi (account ID đã được che; thứ tự các policy có thể khác). Nếu thiếu dòng nào, tài nguyên đó chưa được tạo hoặc bị sai tên:
-
-```text
-ridenow-prod-app-access
-ridenow-prod-trip-service-messaging
-ridenow-prod-payment-service-messaging
-ridenow-prod-matching-service-messaging
-ridenow-prod-notification-worker-messaging
-arn:aws:iam::123456789012:role/ridenow-prod-eks-cluster-role
-arn:aws:iam::123456789012:role/ridenow-prod-eks-fargate-pod-execution-role
-```
-
-Tiếp theo: [5.4 Network](../5.4-Network/).
+## Tổng kết
+Như vậy, ở bước đầu tiên của quá trình triển khai hệ thống RideNow lên AWS, em đã tiến hành cấu hình IAM với tổng cộng 7 tài nguyên, bao gồm 2 IAM Roles và 5 IAM Policies.
+Hai IAM Roles được sử dụng để cấp quyền cho EKS Cluster và hạ tầng Fargate.
+Năm IAM Policies được sử dụng để định nghĩa quyền truy cập dành cho ứng dụng và các microservices như Trip Service, Payment Service, Matching Service và Notification Worker.
+Việc tách riêng các policy giúp quản lý quyền truy cập rõ ràng hơn và hỗ trợ áp dụng nguyên tắc phân quyền tối thiểu, nghĩa là mỗi thành phần chỉ được cấp những quyền thực sự cần thiết.
+Sau khi hoàn thành phần IAM, hệ thống đã có các thành phần phân quyền nền tảng để tiếp tục triển khai những tài nguyên AWS ở các bước tiếp theo.
