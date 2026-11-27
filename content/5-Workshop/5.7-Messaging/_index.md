@@ -1,5 +1,5 @@
 ---
-title : "Messaging"
+title : "SQS: Messaging"
 date : 2024-01-01
 weight : 7
 chapter : false
