@@ -6,48 +6,42 @@ chapter: false
 pre: "<b>2. </b>"
 ---
 
-# RakiBookery
-## Tự động hóa quy trình CI/CD trên nền tảng AWS
+# RideNow
+## Triển khai nền tảng gọi xe trên AWS
 ### 1. Tổng quan dự án
 
-RakiBookery là nền tảng thương mại điện tử chuyên cung cấp dịch vụ quản lý và bán sách trực tuyến. Hệ thống tích hợp các chức năng cốt lõi bao gồm: danh mục sản phẩm, giỏ hàng, quản lý đơn hàng (Order), chương trình khuyến mãi (Promo), xử lý tài nguyên ảnh tải lên, gợi ý sản phẩm thông minh và gửi thông báo đơn hàng. Với đặc điểm xử lý giao dịch mua bán theo thời gian thực và lưu trữ tài nguyên đa phương tiện, hệ thống cần được triển khai trên một hạ tầng có khả năng mở rộng linh hoạt, bảo mật cao và dễ dàng vận hành.
+RideNow là nền tảng gọi xe gồm bảy dịch vụ triển khai độc lập (user, driver, trip, payment, matching, notification và realtime gateway) cùng một giao diện web dạng single-page. Mỗi dịch vụ có cơ sở dữ liệu riêng và trao đổi sự kiện qua một topic và các hàng đợi.
 
-Đề xuất này trình bày giải pháp triển khai hệ thống RakiBookery trên nền tảng Amazon Web Services (AWS) tại Region Singapore (`ap-southeast-1`) theo kiến trúc Cloud-Native, đáp ứng các yêu cầu về tính sẵn sàng cao, bảo mật nhiều lớp và tự động hóa vận hành. Mục tiêu của giải pháp là xây dựng một hạ tầng có khả năng tái sử dụng, chuẩn hóa quy trình theo định hướng DevOps trong môi trường Production.
+Bản đề xuất này chỉ nói về hạ tầng: cách chạy RideNow trên Amazon Web Services trong một môi trường production (`prod`) tại Region Singapore (`ap-southeast-1`). Môi trường được dựng thủ công, từng service console một, theo các hướng dẫn từng bước trong `guides/cloudformation/`. Các template chỉ đọc trong `iac/stacks/` và các giá trị trong `iac/params/prod.json` quy định mọi tên và cấu hình.
 
-- **Thời gian thực hiện dự án:** 4 Sprints / 4 tuần
-- **Quy mô nhân sự:** 5 thành viên (Product Owner: Văn An | Scrum Master: Trương Gia Hào | AWS Admin: Minh Nhật | DevOps & Cloud Engineers: Kiệt, Vũ Bảo)
+- **Môi trường:** `prod`, region `ap-southeast-1`
+- **Thời gian dự án:** [OWNER: điền lịch trình]
+- **Quy mô nhóm và vai trò:** [OWNER: điền quy mô nhóm và vai trò]
 
 ---
 
-### 2. Phát biểu vấn đề
+### 2. Vấn đề cần giải quyết
 
 #### Hiện trạng
-Trước khi triển khai đề xuất, dự án RakiBookery mới chỉ tồn tại ở dạng mã nguồn ứng dụng (PHP Web Application & MySQL Database) hoạt động cục bộ, gặp phải một số hạn chế:
-
-- **Bảo mật chưa được thắt chặt:** Chưa áp dụng quy định bắt buộc xác thực đa yếu tố (Force MFA Policy) cho toàn bộ IAM users, chưa áp dụng nguyên tắc phân quyền tối thiểu (Least Privilege) và thông tin kết nối Database còn lưu trữ dưới dạng plain-text.
-- **Hạ tầng đơn lẻ, thiếu phân tách mạng:** Ứng dụng và Database chạy chung hoặc chưa được phân tách rõ ràng vào các Private Subnets trong VPC.
-- **Quy trình xử lý thủ công:** Việc tải và xử lý ảnh sản phẩm chưa được tự động hóa; hệ thống thiếu các cơ chế thông báo tự động và AI hỗ trợ gợi ý sản phẩm cho người dùng.
+RideNow đã chạy được như một hệ thống cục bộ hoàn chỉnh (`docker compose up --build`): sáu container PostgreSQL, một container Valkey, LocalStack cho SNS và SQS, và bảy dịch vụ. Chuyển lên cloud chỉ là đổi cấu hình ở từng ranh giới, vì ranh giới giữa các dịch vụ không thay đổi. Điều còn thiếu là một môi trường cloud an toàn, lặp lại được để chạy hệ thống.
 
 #### Mục tiêu
-- Chuẩn hóa việc đóng gói ứng dụng PHP bằng **Docker Image** và quản lý tập trung trên **Amazon ECR**.
-- Triển khai ứng dụng dạng Serverless Container với **Amazon ECS Fargate** kết hợp **Application Load Balancer (ALB)**.
-- Xây dựng hạ tầng mạng riêng **Amazon VPC** phân tách Public/Private Subnets tại region Singapore (`ap-southeast-1`).
-- Bắt buộc kích hoạt **Force MFA Policy**, quản lý IAM Least Privilege và lưu trữ thông tin nhạy cảm bí mật trên **AWS Secrets Manager**.
-- Tự động hóa xử lý sự kiện tải ảnh bằng **AWS Lambda**, gửi cảnh báo/thông báo đơn hàng qua **Amazon SNS** và tích hợp AI gợi ý sách bằng **Amazon Bedrock**.
-- Tăng cường bảo mật ứng dụng Web PHP bằng **AWS WAF** tại tầng CloudFront.
+- Chạy mọi dịch vụ dưới dạng container trên **Amazon EKS với AWS Fargate**, không phải quản lý node group.
+- Dùng một instance **Amazon RDS for PostgreSQL** cho mỗi dịch vụ sở hữu dữ liệu (tổng cộng sáu), Multi-AZ, đặt trong private subnet.
+- Truyền sự kiện nghiệp vụ qua **Amazon SNS** và **Amazon SQS**, mỗi hàng đợi có một dead-letter queue.
+- Lưu trạng thái tài xế trực tiếp, chỉ mục GEO, Pub/Sub và luồng vị trí trong **Amazon ElastiCache for Valkey**.
+- Lưu thông tin đăng nhập cơ sở dữ liệu trong **AWS Secrets Manager** và mã hóa dữ liệu bằng **AWS KMS**. Mỗi workload chỉ có quyền IAM cần thiết (IRSA).
+- Chỉ có một điểm vào từ internet: **Application Load Balancer** do AWS Load Balancer Controller tạo, đặt sau **Amazon CloudFront**, với SPA lưu trong bucket **Amazon S3** riêng tư.
 
 #### Giải pháp
-- Thiết kế và khởi tạo hạ tầng VPC Multi-Subnet và RDS MySQL trong Private Subnet.
-- Đóng gói ứng dụng PHP với Dockerfile và đẩy lên Amazon ECR.
-- Định tuyến lưu lượng người dùng qua CloudFront CDN và Application Load Balancer tới ECS Fargate.
-- Quản lý secrets tập trung bằng AWS Secrets Manager và bảo vệ thông tin xác thực.
-- Thiết lập quy trình Serverless Event-driven với S3 Event Trigger, Lambda và SNS.
-- Giám sát toàn bộ hệ thống bằng CloudWatch Dashboards, Alarms và Log Groups.
+- Dựng mạng trước (hai public subnet và hai private subnet trên hai Availability Zone, mỗi zone một NAT gateway), sau đó là IAM, ECR, dữ liệu, messaging và EKS cluster. Các lớp dữ liệu, messaging và cluster chỉ phụ thuộc IAM và mạng, nên có thể dựng theo thứ tự bất kỳ.
+- Đẩy bảy image dịch vụ lên Amazon ECR, rồi triển khai trên Fargate.
+- Tạo frontend sau cùng, khi Ingress đã có địa chỉ ALB. CloudFront chuyển `/api/*` và `/live*` tới ALB đó và phục vụ SPA từ S3.
 
-#### Lợi tức đầu tư
-- **Tối ưu hóa chi phí (Cost Efficiency):** Sử dụng mô hình Serverless (ECS Fargate, Lambda) giúp chỉ trả chi phí theo tài nguyên thực tế tiêu thụ.
-- **Tăng cường bảo mật (Security First):** Đảm bảo an toàn dữ liệu với Force MFA, Secrets Manager, Private Subnet cách ly Database và AWS WAF chống tấn công Web PHP.
-- **Tự động hóa vận hành (Operational Excellence):** Giảm thiểu thao tác thủ công trong quản lý hạ tầng và xử lý dữ liệu truyền thông (media).
+#### Lợi ích đầu tư
+- **Lặp lại được:** mọi tài nguyên, tên và cấu hình đều được ghi trong hướng dẫn và template, nên có thể dựng lại hoặc gỡ bỏ môi trường bất cứ lúc nào.
+- **Quyền tối thiểu:** mỗi dịch vụ có IRSA role riêng, chỉ truy cập hàng đợi của mình và topic dùng chung. Các tầng dữ liệu được giữ riêng tư.
+- **Kiểm soát chi phí:** thứ tự gỡ bỏ được ghi lại giúp xóa mọi tài nguyên tính phí khi không cần môi trường.
 
 ---
 
@@ -55,78 +49,108 @@ Trước khi triển khai đề xuất, dự án RakiBookery mới chỉ tồn t
 
 #### Kiến trúc tổng thể
 
-Cần bổ sung
+```text
+Browser --> CloudFront --> S3 (bucket SPA riêng tư)
+               |
+               +-- /api/*, /live* --> ALB --> EKS on Fargate (7 dịch vụ)
+                                                 |-- RDS PostgreSQL x6 (private subnet)
+                                                 |-- ElastiCache for Valkey
+                                                 +-- SNS topic --> SQS queue x3 (+ DLQ)
+```
+
+[OWNER: thêm ảnh sơ đồ kiến trúc nếu cần]
 
 #### Kiến trúc kết nối dịch vụ
 
-Cần bổ sung
+Quy tắc: nếu bên gọi cần câu trả lời để tiếp tục thì gọi đồng bộ qua HTTP. Nếu chỉ là một việc đã xảy ra và các bên khác phản ứng sau thì phát sự kiện.
+
+| Tương tác | Kiểu |
+| --- | --- |
+| Tạo tài xế kiểm tra người dùng (driver gọi user) | HTTP đồng bộ |
+| Yêu cầu chuyến đi xin giữ tiền (trip gọi payment) | HTTP đồng bộ |
+| Yêu cầu chuyến đi tới ghép tài xế gần nhất | Sự kiện `trip.requested` qua SNS tới hàng đợi matching |
+| Chuyến đi hoàn tất hoặc bị hủy tới thu tiền hoặc nhả tiền | Sự kiện `trip.completed` và `trip.cancelled` qua SNS tới hàng đợi payment |
+| Mọi sự kiện tới hộp thư thông báo | SNS tới hàng đợi notifications (không lọc) |
+| Vị trí tài xế trực tiếp tới hành khách | Valkey Pub/Sub tới realtime gateway, rồi SSE qua đường dẫn ALB `/live` |
+| Vị trí tài xế tới chỉ mục ghép chuyến | Valkey Stream đọc qua consumer group |
+
+Tài nguyên messaging: SNS topic `ridenow-prod-events`, các hàng đợi `ridenow-prod-matching`, `ridenow-prod-payment` và `ridenow-prod-notifications`, mỗi hàng đợi có một dead-letter queue (`maxReceiveCount` 5), và ba subscription dùng raw message delivery.
 
 #### Các thành phần kiến trúc
 
-| Trụ cột Well-Architected | Dịch vụ AWS | Vai trò & Chức năng trong Hệ thống |
+| Lớp | Dịch vụ AWS | Vai trò trong hệ thống |
 | --- | --- | --- |
-| **Operational Excellence** | **Amazon ECR, Docker** | Viết Dockerfile đóng gói ứng dụng PHP, lưu trữ và quản lý phiên bản Container Images trên ECR. |
-| **Security** | **AWS IAM, AWS Secrets Manager, AWS WAF** | Bắt buộc thiết lập Force MFA Policy, phân quyền IAM Least Privilege, bảo mật DB credentials bằng Secrets Manager, gắn AWS WAF ngăn chặn tấn công Web PHP. |
-| **Reliability** | **Amazon VPC, Amazon RDS MySQL** | Thiết lập VPC tại Singapore (`ap-southeast-1`) với Public/Private Subnets, Internet Gateway; RDS MySQL chạy trong Private Subnet bật tính năng tự động Backup & Encryption. |
-| **Performance Efficiency** | **Amazon ECS Fargate, ALB, CloudFront** | Vận hành ứng dụng dạng Serverless Container trên ECS Fargate trong Private Subnet, điều phối lưu lượng qua ALB và tăng tốc phân phối dữ liệu tĩnh/media qua CloudFront CDN. |
-| **Cost Optimization** | **Amazon S3, AWS Fargate** | Phân loại lưu trữ dung lượng qua 3 S3 Buckets chuyên biệt (Static Web, Media bật Encryption & Versioning, Logs); Fargate tính phí theo tài nguyên thực dùng. |
-| **Sustainability & Integration** | **AWS Lambda, Amazon SNS, Amazon Bedrock** | Lambda tự động xử lý ảnh upload lên S3 & gửi tin nhắn; Amazon SNS gửi thông báo đơn hàng/lỗi; Amazon Bedrock thử nghiệm gợi ý sách thông minh. |
+| Danh tính | **AWS IAM** | Hai role cho EKS (`ridenow-prod-eks-cluster-role`, `ridenow-prod-eks-fargate-pod-execution-role`), năm customer managed policy và sáu IRSA role cho add-on và dịch vụ. |
+| Mạng | **Amazon VPC** | VPC `10.30.0.0/16`, hai public và hai private subnet, một internet gateway, hai NAT gateway, và các security group `ridenow-prod-cluster-sg`, `ridenow-prod-db-sg`. |
+| Registry | **Amazon ECR** | Bảy repository (`ridenow/<service>`), quét khi push, tối đa 50 image, image không gắn tag hết hạn sau 14 ngày. |
+| Dữ liệu | **Amazon RDS for PostgreSQL, AWS Secrets Manager, AWS KMS** | Sáu instance `ridenow-prod-<service>-db` (`db.t4g.micro`, 20 GB, Multi-AZ, sao lưu 30 ngày), mã hóa bằng `alias/ridenow-prod-rds`, secret master do RDS quản lý. |
+| Messaging | **Amazon SNS, Amazon SQS** | Một topic, ba hàng đợi, ba dead-letter queue, ba subscription và queue policy chỉ cho phép topic. |
+| Cache | **Amazon ElastiCache for Valkey** | Replication group `ridenow-prod-redis` (`cache.t4g.small`) cùng subnet group và `ridenow-prod-redis-sg`. |
+| Tính toán | **Amazon EKS trên AWS Fargate** | Cluster `ridenow-prod` chạy Kubernetes 1.31 với các Fargate profile `ridenow-prod-system`, `ridenow-prod-app` và `ridenow-prod-observability`. |
+| Ingress | **Elastic Load Balancing (ALB)** | Application Load Balancer do AWS Load Balancer Controller tạo từ Ingress `ridenow`. Năm đường dẫn API cùng `/live`. |
+| Frontend | **Amazon S3, Amazon CloudFront** | Bucket riêng tư, origin access control `ridenow-prod-frontend-oac`, function `ridenow-prod-spa-rewrite` và distribution `RideNow prod frontend`. Role GitHub OIDC tùy chọn `ridenow-prod-frontend-deploy` dùng để publish site. |
 
 ---
 
-### 4. Timeline & Milestones
+### 4. Tiến độ & Cột mốc
 
-| Sprint / Giai đoạn | Hạng mục công việc chính | 
-| :--- | :--- | 
-| **SPRINT 1: Foundation & Infrastructure** | - **Setup VPC (`AWS-001`):** Tạo VPC, Internet Gateway, Public/Private Subnets, Route Tables, Security Groups.<br>- **RDS MySQL Provisioning (`AWS-002`):** Khởi tạo RDS MySQL trong Private Subnet, bật Backup/Encryption, import `bookstoredb.sql`.<br>- **S3 Buckets (`AWS-003`):** Tạo 3 S3 Buckets (Static Web, Media, Logs), cấu hình Block Public Access & Encryption.<br>- **IAM & Secrets Manager (`IAM-001`):** Tạo IAM Users/Groups, cấu hình Force MFA, lưu DB credentials vào Secrets Manager.<br>- **ECR + Dockerfile (`AWS-004`):** Viết Dockerfile ứng dụng PHP, tạo ECR Repository, build & push image.<br>- **Order + Promo Fullstack (`BE-001`):** Cập nhật CSDL Order và hoàn thiện tính năng Khuyến mãi. |
-| **SPRINT 2: Compute & Core Services** | - **Fargate & Task Definition (`AWS-005`):** Khởi tạo ECS Cluster (Fargate), tạo Task Definition kết nối env/secrets từ Secrets Manager.<br>- **ALB + Target Group (`AWS-006`):** Tạo Application Load Balancer, Target Group và Health Check.<br>- **CloudFront & CDN (`AWS-007`):** Phân phối static/media content từ S3 & ALB qua CloudFront Distribution.<br>- **Kết nối PHP app với RDS (`APP-001`):** Cấu hình connection string bí mật và kiểm thử các chức năng CRUD cơ bản. |
-| **SPRINT 3: Serverless, Monitoring & Hoàn thiện** | - **SNS Notification (`AWS-008`):** Tạo SNS Topic gửi thông báo đơn hàng/lỗi qua Email.<br>- **Lambda Functions (`AWS-009`):** Viết Lambda xử lý ảnh upload lên S3 & gửi thông báo tự động.<br>- **CloudWatch Monitoring (`OPS-001`):** Tạo CloudWatch Dashboard, cấu hình Alarms (CPU, 5xx, RDS) và Log Groups.<br>- **Amazon Bedrock & AWS WAF (`BEDROCK-001`):**
-| **SPRINT 4: Testing & Documents** | - **E2E Testing & Runbook (`QA-001` / `DOCS-001`):** Kiểm thử toàn bộ flow mua hàng, upload ảnh và đóng gói tài liệu vận hành. |
+Quy trình dựng theo thứ tự tạo trong các hướng dẫn. Ngày tháng và thời lượng không được ghi trong repository.
+
+| Bước | Hạng mục công việc | Lịch trình |
+| :--- | :--- | :--- |
+| **1. Danh tính và mạng** | IAM role và policy; VPC, subnet, NAT gateway, route table, security group. | [OWNER: điền ngày] |
+| **2. Registry, dữ liệu, messaging, cluster** | ECR repository và đẩy image; KMS, RDS và Secrets Manager; SNS, SQS và Valkey; EKS cluster và Fargate profile. Bốn nhóm này làm theo thứ tự bất kỳ sau bước 1. | [OWNER: điền ngày] |
+| **3. Add-on và dịch vụ** | Quy tắc truy cập mạng của pod, OIDC provider, IRSA role; AWS Load Balancer Controller và External Secrets; triển khai bảy dịch vụ. | [OWNER: điền ngày] |
+| **4. Frontend** | S3, CloudFront, role deploy tùy chọn; publish site lần đầu. Làm sau cùng, khi Ingress đã có địa chỉ ALB. | [OWNER: điền ngày] |
+| **5. Kiểm tra và gỡ bỏ** | Chạy smoke test và các bước kiểm tra trong hướng dẫn; xóa tài nguyên theo thứ tự phụ thuộc ngược khi hoàn tất. | [OWNER: điền ngày] |
 
 ---
 
 ### 5. Ngân sách dự kiến
 
-Hệ thống tối ưu hóa chi phí dựa trên mô hình **AWS Pay-As-You-Go** và **Serverless**, tận dụng tối đa các hạn mức dịch vụ tại Region Singapore (`ap-southeast-1`).
+Repository nêu các dịch vụ tính phí theo giờ kể từ lúc được tạo. Repository không có số liệu giá, nên tổng chi phí để chủ báo cáo điền.
 
-| Dịch vụ AWS | Cấu hình & Vai trò theo kiến trúc |
+| Yếu tố chi phí | Cấu hình |
 | --- | --- |
-| **Amazon ECS Fargate** | Chạy backend PHP container theo nhu cầu tài nguyên thực tế của Task Definition, tối ưu chi phí idle. |
-| **Amazon RDS MySQL** | Khởi tạo RDS instance trong Private Subnet với dung lượng lưu trữ phù hợp cho `bookstoredb.sql`. |
-| **Amazon S3 & CloudFront** | Lưu trữ tệp tĩnh, media và log với 3 buckets chuyên biệt; CloudFront CDN giảm tải băng thông truy cập gốc. |
-| **AWS Secrets Manager & ECR** | Lưu trữ an toàn DB credentials (tính phí theo secret/tháng) và lưu trữ Docker Images trên ECR repository. |
-| **AWS Lambda & Amazon SNS** | Tính phí theo số lượng yêu cầu (requests) và thời gian thực thi (execution time) khi trigger xử lý ảnh/thông báo. |
-| **Amazon CloudWatch** | Cấu hình thu thập log cho Fargate/Lambda và cảnh báo theo ngưỡng chi phí/hiệu năng. |
+| **EKS control plane** | Một cluster, `ridenow-prod`. |
+| **NAT gateway** | Hai cái, mỗi Availability Zone một cái, cùng Elastic IP. |
+| **Amazon RDS for PostgreSQL** | Sáu instance `db.t4g.micro` Multi-AZ, 20 GB lưu trữ, sao lưu 30 ngày. |
+| **Amazon ElastiCache for Valkey** | Một replication group `cache.t4g.small`. |
+| **AWS Fargate** | Các pod trong profile system, app và observability. |
+| **Application Load Balancer** | Một ALB do Ingress tạo. |
+| **Dịch vụ khác** | SNS, SQS, dung lượng ECR, Secrets Manager, khóa KMS, S3 và CloudFront, tính theo mức dùng. |
+
+| Số liệu | Giá trị |
+| --- | --- |
+| Chi phí hằng tháng ước tính | [OWNER: điền ước tính chi phí] |
+| Hạn mức ngân sách | [OWNER: điền hạn mức ngân sách] |
 
 ---
 
 ### 6. Đánh giá rủi ro
 
-#### Ma trận rủi ro & Kế hoạch ứng phó
-
-| Rủi ro nhận diện | Khả năng | Ảnh hưởng | Biện pháp giảm thiểu & Kế hoạch ứng phó |
+| Rủi ro | Khả năng | Tác động | Biện pháp giảm thiểu |
 | --- | --- | --- | --- |
-| **Lộ thông tin nhạy cảm / DB Credentials** | Thấp | Rất cao | Lưu trữ toàn bộ credentials trên Secrets Manager; bắt buộc áp dụng **Force MFA Policy** cho toàn bộ IAM Accounts. |
-| **Sự cố kết nối Database từ Fargate** | Trung bình | Cao | Đặt RDS MySQL trong Private Subnet; cấu hình Security Group chỉ cho phép truy cập nội bộ từ ECS Fargate Tasks. |
-| **Tấn công lỗ hổng bảo mật Web PHP** | Trung bình | Cao | Tích hợp **AWS WAF** tại tầng CloudFront để ngăn chặn các kiểu tấn công phổ biến vào ứng dụng PHP. |
-| **Lỗi phát sinh khi xử lý upload ảnh** | Trung bình | Trung bình | Tách rời logic xử lý ảnh sang các hàm **AWS Lambda** chạy độc lập theo S3 Event Trigger. |
+| **Tài nguyên tính phí theo giờ bị để chạy** | [OWNER: đánh giá] | [OWNER: đánh giá] | Làm theo thứ tự gỡ bỏ. Xóa ALB của Ingress trước khi xóa VPC. |
+| **Sai thứ tự tạo** | [OWNER: đánh giá] | [OWNER: đánh giá] | Tạo tài nguyên add-on trước khi cài Load Balancer Controller và External Secrets. Tạo frontend sau cùng. |
+| **Lộ thông tin đăng nhập cơ sở dữ liệu** | [OWNER: đánh giá] | [OWNER: đánh giá] | Secret do RDS quản lý trong Secrets Manager, cấp qua External Secrets và IRSA. Cơ sở dữ liệu nằm trong private subnet. |
+| **Điểm vào để mở** | [OWNER: đánh giá] | [OWNER: đánh giá] | ALB dùng HTTP cổng 80, không có WAF và không giới hạn nguồn. `docs/ARCHITECTURE.md` liệt kê TLS, WAF và xác thực là các điểm chặn trước khi dùng thật. |
+| **Mất hoặc trùng sự kiện** | [OWNER: đánh giá] | [OWNER: đánh giá] | Dead-letter queue cho mọi hàng đợi, consumer idempotent, và sự kiện chỉ phát sau khi commit. |
 
 ---
 
-### 7. Kết quả mong đợi
+### 7. Kết quả kỳ vọng
 
-Sau khi hoàn thành triển khai dự án RakiBookery, hệ thống dự kiến đạt được các kết quả sau:
-
-- **Hạ tầng chuẩn hóa Cloud-Native:** Toàn bộ hệ thống Web E-commerce RakiBookery vận hành ổn định, bảo mật trên AWS ECS Fargate và RDS MySQL tại region Singapore.
-- **Tự động hóa & Tích hợp AI:** Tự động hóa quy trình xử lý tài nguyên media bằng Serverless Lambda, phát cảnh báo đơn hàng qua SNS và thử nghiệm tính năng AI gợi ý sản phẩm dựa trên Amazon Bedrock.
-- **Bảo mật và Vận hành chuẩn mực:** Tuân thủ quy định Force MFA, kiểm soát IAM Least Privilege, mã hóa tài nguyên S3/Secrets và đóng gói bộ tài liệu hướng dẫn vận hành (Runbook) đầy đủ cho nhóm.
+- **Môi trường `prod` đang chạy** tại `ap-southeast-1`: sáu cơ sở dữ liệu, một topic với ba hàng đợi và các dead-letter queue, một nhóm Valkey, một EKS cluster với ba Fargate profile, bảy image trong ECR, một ALB, và frontend trên S3 và CloudFront.
+- **Tài liệu lặp lại được:** mọi tên và cấu hình tài nguyên được ghi trong hướng dẫn, và chương workshop đi qua từng bước trên từng console.
+- **Gỡ bỏ gọn:** một thứ tự gỡ bỏ xóa mọi tài nguyên tính phí.
 
 ---
 
 ### 8. Tài liệu tham khảo
 
-[1]: [AWS Well-Architected Framework](https://aws.amazon.com/vi/architecture/well-architected/)
+[1]: [AWS Well-Architected Framework](https://aws.amazon.com/architecture/well-architected/)
 
-[2]: [Amazon ECS Documentation](https://docs.aws.amazon.com/ecs/)
+[2]: [Amazon EKS Documentation](https://docs.aws.amazon.com/eks/)
 
 [3]: [AWS Secrets Manager Developer Guide](https://docs.aws.amazon.com/secretsmanager/)

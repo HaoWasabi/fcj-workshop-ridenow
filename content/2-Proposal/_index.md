@@ -6,48 +6,42 @@ chapter: false
 pre: "<b>2. </b>"
 ---
 
-# RakiBookery
-## CI/CD Pipeline Automation on AWS
+# RideNow
+## Deploying a ride-hailing platform on AWS
 ### 1. Project Overview
 
-RakiBookery is an e-commerce platform specialized in online book management and sales services. The system integrates core functionalities including: product catalog, shopping cart, order management (Order), promotions (Promo), uploaded image resource processing, intelligent product recommendations, and order notification delivery. Given its nature of handling real-time purchase transactions and storing multimedia resources, the system requires deployment on an infrastructure with flexible scalability, high security, and ease of operation.
+RideNow is a ride-hailing platform made of seven deployable services (user, driver, trip, payment, matching, notification, and a realtime gateway) and a single-page web frontend. The services keep one database each and exchange events through a message topic and queues.
 
-This proposal presents a solution for deploying the RakiBookery system on Amazon Web Services (AWS) in the Singapore Region (`ap-southeast-1`) following a Cloud-Native architecture, meeting requirements for high availability, multi-layered security, and operational automation. The goal of this solution is to build a reusable infrastructure that standardizes processes in alignment with DevOps principles in a Production environment.
+This proposal covers the infrastructure only: how to run RideNow on Amazon Web Services in one production environment (`prod`) in the Singapore Region (`ap-southeast-1`). The environment is built by hand, one service console at a time, following the step-by-step guides in `guides/cloudformation/`. The read-only templates in `iac/stacks/` and the values in `iac/params/prod.json` define every name and setting.
 
-- **Project Duration:** 4 Sprints / 4 weeks
-- **Team Size:** 5 members (Product Owner: Văn An | Scrum Master: Trương Gia Hào | AWS Admin: Minh Nhật | DevOps & Cloud Engineers: Kiệt, Vũ Bảo)
+- **Environment:** `prod`, region `ap-southeast-1`
+- **Project duration:** [OWNER: fill in the schedule]
+- **Team size and roles:** [OWNER: fill in team size and roles]
 
 ---
 
 ### 2. Problem Statement
 
 #### Current State
-Prior to implementing this proposal, the RakiBookery project only existed as application source code (PHP Web Application & MySQL Database) running locally, facing several limitations:
-
-- **Insufficient Security Hardening:** No enforcement of Multi-Factor Authentication (Force MFA Policy) for all IAM users, no application of the Least Privilege principle, and Database connection credentials stored in plain-text.
-- **Single-tier Infrastructure, Lack of Network Segmentation:** The application and Database run together or have not been clearly separated into Private Subnets within a VPC.
-- **Manual Processing Workflows:** Product image upload and processing has not been automated; the system lacks automatic notification mechanisms and AI-powered product recommendation support for users.
+RideNow already runs as a complete local system (`docker compose up --build`): six PostgreSQL containers, one Valkey container, LocalStack for SNS and SQS, and the seven services. Moving it to the cloud is a configuration swap at each boundary, because the service boundaries do not change. What is missing is a repeatable, secure cloud environment to run it in.
 
 #### Objectives
-- Standardize PHP application packaging using **Docker Images** and centrally manage them on **Amazon ECR**.
-- Deploy the application as a Serverless Container with **Amazon ECS Fargate** combined with an **Application Load Balancer (ALB)**.
-- Build a private **Amazon VPC** network infrastructure with separated Public/Private Subnets in the Singapore region (`ap-southeast-1`).
-- Enforce **Force MFA Policy** activation, manage IAM Least Privilege, and store sensitive credentials securely on **AWS Secrets Manager**.
-- Automate image upload event processing with **AWS Lambda**, send order alerts/notifications via **Amazon SNS**, and integrate AI book recommendations using **Amazon Bedrock**.
-- Enhance PHP Web application security with **AWS WAF** at the CloudFront layer.
+- Run every service as a container on **Amazon EKS with AWS Fargate**, with no node groups to manage.
+- Store one **Amazon RDS for PostgreSQL** instance per data-owning service (six in total), Multi-AZ, in private subnets.
+- Carry domain events over **Amazon SNS** and **Amazon SQS**, with a dead-letter queue on every queue.
+- Hold live driver state, the GEO index, Pub/Sub and a location stream in **Amazon ElastiCache for Valkey**.
+- Keep database credentials in **AWS Secrets Manager** and encrypt data with **AWS KMS**. Give each workload only the IAM permissions it needs (IRSA).
+- Publish one internet-facing entry: an **Application Load Balancer** created by the AWS Load Balancer Controller, behind **Amazon CloudFront** with the SPA stored in a private **Amazon S3** bucket.
 
 #### Solution
-- Design and provision a Multi-Subnet VPC infrastructure and RDS MySQL in a Private Subnet.
-- Package the PHP application with a Dockerfile and push it to Amazon ECR.
-- Route user traffic through CloudFront CDN and Application Load Balancer to ECS Fargate.
-- Centrally manage secrets with AWS Secrets Manager and protect authentication credentials.
-- Establish a Serverless Event-driven workflow with S3 Event Trigger, Lambda, and SNS.
-- Monitor the entire system with CloudWatch Dashboards, Alarms, and Log Groups.
+- Build the network first (two public and two private subnets across two Availability Zones, one NAT gateway per zone), then IAM, ECR, data, messaging and the EKS cluster. The data, messaging and cluster layers depend only on IAM and network, so they can be built in any order.
+- Push seven service images to Amazon ECR, then deploy them on Fargate.
+- Create the frontend last, once the Ingress has an ALB address. CloudFront routes `/api/*` and `/live*` to that ALB and serves the SPA from S3.
 
 #### Return on Investment
-- **Cost Efficiency:** Using the Serverless model (ECS Fargate, Lambda) ensures payment only for actual resources consumed.
-- **Security First:** Ensures data safety with Force MFA, Secrets Manager, Private Subnet database isolation, and AWS WAF to protect against PHP Web attacks.
-- **Operational Excellence:** Minimizes manual operations in infrastructure management and media data processing.
+- **Repeatable:** every resource, name and setting is written down in the guides and templates, so the environment can be rebuilt or torn down on demand.
+- **Least privilege:** each service has its own IRSA role limited to its own queue and the shared topic. Data tiers stay private.
+- **Cost control:** a documented teardown order removes every billed resource when the environment is not needed.
 
 ---
 
@@ -55,71 +49,101 @@ Prior to implementing this proposal, the RakiBookery project only existed as app
 
 #### Overall Architecture
 
-To be added
+```text
+Browser --> CloudFront --> S3 (private SPA bucket)
+               |
+               +-- /api/*, /live* --> ALB --> EKS on Fargate (7 services)
+                                                 |-- RDS PostgreSQL x6 (private subnets)
+                                                 |-- ElastiCache for Valkey
+                                                 +-- SNS topic --> SQS queues x3 (+ DLQs)
+```
+
+[OWNER: add an architecture diagram image if required]
 
 #### Service Connection Architecture
 
-To be added
+The rule is: if the caller needs the answer to continue, it calls over HTTP. If something merely happened and others react later, an event is published.
+
+| Interaction | Mode |
+| --- | --- |
+| Driver creation validates the user (driver to user) | Synchronous HTTP |
+| Trip request authorizes the fare (trip to payment) | Synchronous HTTP |
+| Trip request to nearby-driver matching | Event `trip.requested` through SNS to the matching queue |
+| Trip completion or cancellation to payment capture or release | Events `trip.completed` and `trip.cancelled` through SNS to the payment queue |
+| Every event to the notification inbox | SNS to the notifications queue (no filter) |
+| Live driver position to the passenger | Valkey Pub/Sub to the realtime gateway, then SSE through the ALB `/live` path |
+| Driver location to the matching index | Valkey Stream read through a consumer group |
+
+Messaging resources: the SNS topic `ridenow-prod-events`, the queues `ridenow-prod-matching`, `ridenow-prod-payment` and `ridenow-prod-notifications`, each with a dead-letter queue (`maxReceiveCount` 5), and three subscriptions with raw message delivery.
 
 #### Architecture Components
 
-| Well-Architected Pillar | AWS Service | Role & Function in the System |
+| Layer | AWS Service | Role in the system |
 | --- | --- | --- |
-| **Operational Excellence** | **Amazon ECR, Docker** | Write Dockerfile to package the PHP application, store and manage Container Image versions on ECR. |
-| **Security** | **AWS IAM, AWS Secrets Manager, AWS WAF** | Enforce Force MFA Policy, apply IAM Least Privilege, secure DB credentials with Secrets Manager, attach AWS WAF to block PHP Web attacks. |
-| **Reliability** | **Amazon VPC, Amazon RDS MySQL** | Set up VPC in Singapore (`ap-southeast-1`) with Public/Private Subnets and Internet Gateway; RDS MySQL runs in a Private Subnet with automatic Backup & Encryption enabled. |
-| **Performance Efficiency** | **Amazon ECS Fargate, ALB, CloudFront** | Run the application as a Serverless Container on ECS Fargate in a Private Subnet, distribute traffic through ALB, and accelerate static/media content delivery via CloudFront CDN. |
-| **Cost Optimization** | **Amazon S3, AWS Fargate** | Classify storage capacity across 3 dedicated S3 Buckets (Static Web, Media with Encryption & Versioning enabled, Logs); Fargate charges based on actual resource usage. |
-| **Sustainability & Integration** | **AWS Lambda, Amazon SNS, Amazon Bedrock** | Lambda automatically processes images uploaded to S3 & sends messages; Amazon SNS sends order/error notifications; Amazon Bedrock experiments with intelligent book recommendations. |
+| Identity | **AWS IAM** | Two EKS roles (`ridenow-prod-eks-cluster-role`, `ridenow-prod-eks-fargate-pod-execution-role`), five customer managed policies, and six IRSA roles for the add-ons and services. |
+| Network | **Amazon VPC** | VPC `10.30.0.0/16`, two public and two private subnets, one internet gateway, two NAT gateways, and the security groups `ridenow-prod-cluster-sg` and `ridenow-prod-db-sg`. |
+| Registry | **Amazon ECR** | Seven repositories (`ridenow/<service>`), scan on push, at most 50 images, untagged images expire after 14 days. |
+| Data | **Amazon RDS for PostgreSQL, AWS Secrets Manager, AWS KMS** | Six `ridenow-prod-<service>-db` instances (`db.t4g.micro`, 20 GB, Multi-AZ, 30-day backups), encrypted with `alias/ridenow-prod-rds`, with RDS-managed master secrets. |
+| Messaging | **Amazon SNS, Amazon SQS** | One topic, three queues, three dead-letter queues, three subscriptions and queue policies that admit only the topic. |
+| Cache | **Amazon ElastiCache for Valkey** | Replication group `ridenow-prod-redis` (`cache.t4g.small`) with its subnet group and `ridenow-prod-redis-sg`. |
+| Compute | **Amazon EKS on AWS Fargate** | Cluster `ridenow-prod` on Kubernetes 1.31 with the Fargate profiles `ridenow-prod-system`, `ridenow-prod-app` and `ridenow-prod-observability`. |
+| Ingress | **Elastic Load Balancing (ALB)** | Application Load Balancer created from the `ridenow` Ingress by the AWS Load Balancer Controller. Five API paths plus `/live`. |
+| Frontend | **Amazon S3, Amazon CloudFront** | Private bucket, origin access control `ridenow-prod-frontend-oac`, function `ridenow-prod-spa-rewrite`, and the distribution `RideNow prod frontend`. An optional GitHub OIDC role `ridenow-prod-frontend-deploy` publishes the site. |
 
 ---
 
 ### 4. Timeline & Milestones
 
-| Sprint / Phase | Key Work Items |
-| :--- | :--- |
-| **SPRINT 1: Foundation & Infrastructure** | - **VPC Setup (`AWS-001`):** Create VPC, Internet Gateway, Public/Private Subnets, Route Tables, Security Groups.<br>- **RDS MySQL Provisioning (`AWS-002`):** Provision RDS MySQL in a Private Subnet, enable Backup/Encryption, import `bookstoredb.sql`.<br>- **S3 Buckets (`AWS-003`):** Create 3 S3 Buckets (Static Web, Media, Logs), configure Block Public Access & Encryption.<br>- **IAM & Secrets Manager (`IAM-001`):** Create IAM Users/Groups, configure Force MFA, store DB credentials in Secrets Manager.<br>- **ECR + Dockerfile (`AWS-004`):** Write PHP application Dockerfile, create ECR Repository, build & push image.<br>- **Order + Promo Fullstack (`BE-001`):** Update Order database schema and complete the Promotion feature. |
-| **SPRINT 2: Compute & Core Services** | - **Fargate & Task Definition (`AWS-005`):** Initialize ECS Cluster (Fargate), create Task Definition connecting env/secrets from Secrets Manager.<br>- **ALB + Target Group (`AWS-006`):** Create Application Load Balancer, Target Group, and Health Check.<br>- **CloudFront & CDN (`AWS-007`):** Distribute static/media content from S3 & ALB through CloudFront Distribution.<br>- **Connect PHP App to RDS (`APP-001`):** Configure secret connection strings and test basic CRUD functionality. |
-| **SPRINT 3: Serverless, Monitoring & Finalization** | - **SNS Notification (`AWS-008`):** Create SNS Topic to send order/error notifications via Email.<br>- **Lambda Functions (`AWS-009`):** Write Lambda functions to process images uploaded to S3 & send automatic notifications.<br>- **CloudWatch Monitoring (`OPS-001`):** Create CloudWatch Dashboard, configure Alarms (CPU, 5xx, RDS) and Log Groups.<br>- **Amazon Bedrock & AWS WAF (`BEDROCK-001`):** |
-| **SPRINT 4: Testing & Documentation** | - **E2E Testing & Runbook (`QA-001` / `DOCS-001`):** Test the complete purchase flow, image upload, and package the operational documentation (Runbook). |
+The build follows the creation order of the guides. Dates and durations are not recorded in the repository.
+
+| Step | Work items | Schedule |
+| :--- | :--- | :--- |
+| **1. Identity and network** | IAM roles and policies; VPC, subnets, NAT gateways, route tables, security groups. | [OWNER: fill in dates] |
+| **2. Registry, data, messaging, cluster** | ECR repositories and image push; KMS, RDS and Secrets Manager; SNS, SQS and Valkey; EKS cluster and Fargate profiles. These four can run in any order after step 1. | [OWNER: fill in dates] |
+| **3. Add-ons and services** | Pod network access rules, OIDC provider, IRSA roles; AWS Load Balancer Controller and External Secrets; deploy the seven services. | [OWNER: fill in dates] |
+| **4. Frontend** | S3, CloudFront, optional deploy role; first publish of the site. Done last, after the Ingress has an ALB address. | [OWNER: fill in dates] |
+| **5. Verification and teardown** | Run the smoke test and the guide checks; delete resources in reverse dependency order when finished. | [OWNER: fill in dates] |
 
 ---
 
 ### 5. Estimated Budget
 
-The system optimizes costs based on the **AWS Pay-As-You-Go** and **Serverless** model, maximizing the use of service free tiers in the Singapore Region (`ap-southeast-1`).
+The repository names the services that bill by the hour from the moment they are created. It contains no price figures, so the cost totals are left for the owner.
 
-| AWS Service | Configuration & Role in Architecture |
+| Cost driver | Configuration |
 | --- | --- |
-| **Amazon ECS Fargate** | Runs the PHP backend container based on actual Task Definition resource requirements, optimizing idle costs. |
-| **Amazon RDS MySQL** | Provision an RDS instance in a Private Subnet with appropriate storage capacity for `bookstoredb.sql`. |
-| **Amazon S3 & CloudFront** | Store static files, media, and logs with 3 dedicated buckets; CloudFront CDN reduces origin bandwidth load. |
-| **AWS Secrets Manager & ECR** | Securely store DB credentials (charged per secret/month) and store Docker Images on the ECR repository. |
-| **AWS Lambda & Amazon SNS** | Charged per number of requests and execution time when triggering image processing/notification events. |
-| **Amazon CloudWatch** | Configure log collection for Fargate/Lambda and set alerts based on cost/performance thresholds. |
+| **EKS control plane** | One cluster, `ridenow-prod`. |
+| **NAT gateways** | Two, one per Availability Zone, plus their Elastic IPs. |
+| **Amazon RDS for PostgreSQL** | Six Multi-AZ `db.t4g.micro` instances with 20 GB storage and 30-day backups. |
+| **Amazon ElastiCache for Valkey** | One replication group on `cache.t4g.small`. |
+| **AWS Fargate** | Pods in the system, app and observability profiles. |
+| **Application Load Balancer** | One ALB created by the Ingress. |
+| **Other services** | SNS, SQS, ECR storage, Secrets Manager, KMS keys, S3 and CloudFront, charged by use. |
+
+| Figure | Value |
+| --- | --- |
+| Estimated monthly cost | [OWNER: fill in the cost estimate] |
+| Budget limit | [OWNER: fill in the budget limit] |
 
 ---
 
 ### 6. Risk Assessment
 
-#### Risk Matrix & Response Plan
-
-| Identified Risk | Likelihood | Impact | Mitigation & Response Plan |
+| Identified risk | Likelihood | Impact | Mitigation |
 | --- | --- | --- | --- |
-| **Exposure of Sensitive Information / DB Credentials** | Low | Very High | Store all credentials on Secrets Manager; enforce **Force MFA Policy** for all IAM Accounts. |
-| **Database Connection Failure from Fargate** | Medium | High | Place RDS MySQL in a Private Subnet; configure Security Groups to only allow internal access from ECS Fargate Tasks. |
-| **PHP Web Security Vulnerability Attack** | Medium | High | Integrate **AWS WAF** at the CloudFront layer to block common attack vectors targeting PHP applications. |
-| **Errors During Image Upload Processing** | Medium | Medium | Decouple image processing logic into separate **AWS Lambda** functions running independently via S3 Event Trigger. |
+| **Hourly charges left running** | [OWNER: rate] | [OWNER: rate] | Follow the teardown order. Delete the Ingress ALB before the VPC. |
+| **Wrong creation order** | [OWNER: rate] | [OWNER: rate] | Create the add-ons resources before installing the Load Balancer Controller and External Secrets. Create the frontend last. |
+| **Database credentials exposed** | [OWNER: rate] | [OWNER: rate] | RDS-managed secrets in Secrets Manager, delivered through External Secrets and IRSA. Databases stay in private subnets. |
+| **Open edge** | [OWNER: rate] | [OWNER: rate] | The ALB is HTTP on port 80 with no WAF and no source restriction. `docs/ARCHITECTURE.md` lists TLS, WAF and authentication as blockers before production use. |
+| **Event loss or duplicates** | [OWNER: rate] | [OWNER: rate] | Dead-letter queues on every queue, idempotent consumers, and events published after commit. |
 
 ---
 
 ### 7. Expected Outcomes
 
-Upon completion of the RakiBookery project deployment, the system is expected to achieve the following outcomes:
-
-- **Standardized Cloud-Native Infrastructure:** The entire RakiBookery Web E-commerce system operates stably and securely on AWS ECS Fargate and RDS MySQL in the Singapore region.
-- **Automation & AI Integration:** Automate media resource processing workflows with Serverless Lambda, broadcast order alerts via SNS, and experiment with AI product recommendation features powered by Amazon Bedrock.
-- **Security and Operational Best Practices:** Comply with Force MFA regulations, enforce IAM Least Privilege controls, encrypt S3/Secrets resources, and package a complete operational guide (Runbook) for the team.
+- **A running `prod` environment** in `ap-southeast-1`: six databases, one topic with three queues and their dead-letter queues, one Valkey group, one EKS cluster with three Fargate profiles, seven images in ECR, an ALB, and the S3 and CloudFront frontend.
+- **A repeatable record:** every resource name and setting is documented in the guides, and the workshop chapter walks through them one console at a time.
+- **A clean exit:** a teardown order that removes every billed resource.
 
 ---
 
@@ -127,6 +151,6 @@ Upon completion of the RakiBookery project deployment, the system is expected to
 
 [1]: [AWS Well-Architected Framework](https://aws.amazon.com/architecture/well-architected/)
 
-[2]: [Amazon ECS Documentation](https://docs.aws.amazon.com/ecs/)
+[2]: [Amazon EKS Documentation](https://docs.aws.amazon.com/eks/)
 
 [3]: [AWS Secrets Manager Developer Guide](https://docs.aws.amazon.com/secretsmanager/)

@@ -6,30 +6,41 @@ chapter: false
 pre: " <b> 5. </b> "
 ---
 
-# DevOps on AWS with RakiBookery - Bookery Website
+# Triển khai RideNow trên AWS
 
 ### Tổng quan
 
-Workshop này hướng dẫn toàn bộ quy trình xây dựng, triển khai và vận hành **RakiBookery** - website nhà sách online - trên nền tảng Amazon Web Services (AWS). Dự án áp dụng mô hình Cloud & DevOps hiện đại với pipeline CI/CD tự động hoàn toàn, khả năng sẵn sàng cao theo Multi-AZ, và hệ thống giám sát toàn diện.
+Workshop này hướng dẫn tạo và cấu hình, lần lượt trong từng service console, các dịch vụ AWS mà **RideNow** chạy trên đó. Bạn xây dựng môi trường production (`prod`) tại region `ap-southeast-1` (Singapore). Workshop chỉ bao gồm phần thiết lập AWS và không giải thích mã nguồn ứng dụng.
 
-Workshop được chia thành bốn giai đoạn chính:
+Mọi trang đều dùng AWS Management Console để tạo tài nguyên. AWS CLI, `kubectl` và Helm chỉ xuất hiện ở những bước console không làm được, như kubeconfig, cài add-on, Kubernetes secret, build và push image, và các bước kiểm tra. Mọi lệnh đều là Bash (dùng WSL trên Windows).
 
-- **Hạ tầng**: Thiết lập mạng và các dịch vụ AWS nền tảng (VPC, RDS, S3, IAM)
-- **Triển khai**: Xây dựng pipeline CI/CD bằng GitHub Actions và triển khai ứng dụng lên ECS Fargate
-- **Vận hành**: Cấu hình auto-scaling, phân phối CDN, giám sát, cảnh báo chi phí và kiểm thử end-to-end
-- **Hình ảnh minh họa**: Danh sách tham chiếu toàn bộ ảnh chụp màn hình sử dụng trong workshop
+> Chi phí: EKS control plane, NAT gateway, RDS Multi-AZ và ElastiCache tính tiền theo giờ kể từ lúc tạo. Hãy kết thúc bằng mục 5.11 Dọn dẹp tài nguyên.
 
 ### Tổng quan kiến trúc
 
-Hệ thống được tổ chức theo năm lớp chính:
+Hệ thống được tổ chức theo các lớp sau:
 
-| Lớp | Thành phần |
-|-----|-----------|
-| CI/CD | GitHub Actions, Docker, Amazon ECR |
-| Presentation | Amazon CloudFront, Amazon S3 (Frontend) |
-| Application | Application Load Balancer, Amazon ECS Fargate |
-| Data | Amazon RDS MySQL (Multi-AZ) |
-| Monitoring | Amazon CloudWatch, Amazon SNS, AWS Budgets |
+| Lớp | Dịch vụ AWS |
+|-----|-------------|
+| Định danh | IAM role và policy |
+| Mạng | VPC, subnet, internet gateway, NAT gateway, route table, security group |
+| Container image | Amazon ECR |
+| Dữ liệu | Amazon RDS PostgreSQL, AWS Secrets Manager, AWS KMS |
+| Messaging và cache | Amazon SNS, Amazon SQS, Amazon ElastiCache for Valkey |
+| Compute | Amazon EKS với AWS Fargate |
+| Ingress | Application Load Balancer do AWS Load Balancer Controller tạo |
+| Frontend | Amazon S3 với Amazon CloudFront |
+
+### Những gì bạn xây dựng
+
+| Hạng mục | Số lượng |
+|----------|----------|
+| RDS PostgreSQL instance (mỗi service một instance) | 6 |
+| ECR repository | 7 |
+| SNS topic (`ridenow-prod-events`) | 1 |
+| SQS queue, mỗi queue có một dead-letter queue | 3 queue, 3 dead-letter queue |
+| Subnet | 2 public, 2 private |
+| Fargate profile | 3 |
 
 ### Nội dung
 
@@ -42,4 +53,14 @@ Hệ thống được tổ chức theo năm lớp chính:
 7. [Messaging](5.7-Messaging/)
 8. [EKS Cluster](5.8-EKS-Cluster/)
 9. [EKS Addons](5.9-EKS-Addons/)
-10. [Dọn dẹp tài nguyên](5.10-Cleanup/)
+10. [Frontend](5.10-Frontend/)
+11. [Dọn dẹp tài nguyên](5.11-Cleanup/)
+
+### Thứ tự tạo tài nguyên
+
+Thực hiện lần lượt từ 5.3 đến 5.10, sau đó dọn dẹp ở 5.11 khi hoàn tất. Có hai quy tắc về thứ tự:
+
+- **EKS Addons (5.9) làm sau EKS Cluster (5.8) và trước khi cài AWS Load Balancer Controller và External Secrets.** Các IRSA role tạo ở 5.9 chính là role mà hai bản cài này chạy bằng. Vì vậy: tạo cluster ở 5.8, tạo tài nguyên của 5.9, quay lại các bước post-deploy của 5.8 để cài hai add-on, rồi triển khai bảy service từ 5.9.
+- **Frontend (5.10) làm sau cùng,** sau khi các service đã được triển khai và Ingress `ridenow` đã có địa chỉ ALB, vì CloudFront dùng ALB đó làm API origin.
+
+Data (5.6), Messaging (5.7) và EKS Cluster (5.8) chỉ phụ thuộc vào IAM (5.3) và Network (5.4). Khi hai phần này xong, bạn có thể xây ba phần còn lại theo thứ tự bất kỳ.
