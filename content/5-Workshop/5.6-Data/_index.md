@@ -10,7 +10,7 @@ This page creates the data layer of the `prod` environment: one KMS key, one DB 
 
 ## Set variables
 
-Run the first block in a new shell. It repeats the shared variables from 5.2 and the network variables from 5.4, each with its own lookup:
+Before proceeding, open a new shell and run the first block. It checks the shared resources from section 5.2 and the network variables from section 5.4, each with its own validation check. The `STOP` mechanism catches missing variables or misconfigured resources before anything is created.
 
 ```bash
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -40,7 +40,7 @@ echo "PRIVATE_SUBNET_IDS=$PRIVATE_SUBNET_IDS"
 echo "DB_SG_ID=$DB_SG_ID"
 ```
 
-Expected result (the account ID and resource IDs are masked):
+Expected result (account ID and resource IDs are masked):
 
 ```text
 ACCOUNT_ID=123456789012
@@ -52,9 +52,9 @@ PRIVATE_SUBNET_IDS=subnet-0ccc... subnet-0ddd...
 DB_SG_ID=sg-0fff...
 ```
 
-If a line starts with `STOP`, fix that problem and run the block again.
+If any line starts with `STOP`, fix that problem and run the block again.
 
-The data variables look up resources that you create on this page. Run the second block after you finish Create the resources, not before. Each lookup finds its resource by name.
+The data variables look up resources you create on this page. Run the second block only after completing the Create the resources section, not before. Each lookup finds its resource by name.
 
 ```bash
 RDS_KMS_KEY_ARN=$(aws kms describe-key --key-id "alias/${CLUSTER_NAME}-rds" --query KeyMetadata.Arn --output text 2>/dev/null)
@@ -111,7 +111,7 @@ echo "NOTIFICATION_DB_ENDPOINT=$NOTIFICATION_DB_ENDPOINT"
 echo "NOTIFICATION_DB_SECRET_ARN=$NOTIFICATION_DB_SECRET_ARN"
 ```
 
-Expected result (the account ID is masked and the values are shortened):
+Expected result (account ID is masked and values are shortened):
 
 ```text
 RDS_KMS_KEY_ARN=arn:aws:kms:ap-southeast-1:123456789012:key/1234abcd-...
@@ -129,13 +129,13 @@ NOTIFICATION_DB_ENDPOINT=ridenow-prod-notification-db.xxxx.ap-southeast-1.rds.am
 NOTIFICATION_DB_SECRET_ARN=arn:aws:secretsmanager:ap-southeast-1:123456789012:secret:rds!db-...
 ```
 
-If a line starts with `STOP`, fix that problem and run the block again.
+If any line starts with `STOP`, fix that problem and run the block again.
 
 ## What it creates
 
-| Template logical ID | AWS resource type | Name |
+| Logical ID in template | AWS resource type | Name |
 |---|---|---|
-| `DbKmsKey` | KMS key (symmetric) | No name; the alias below points to it |
+| `DbKmsKey` | KMS key (symmetric) | No name; the alias below points to this key |
 | `DbKmsAlias` | KMS alias | `alias/ridenow-prod-rds` |
 | `DbSubnetGroup` | RDS DB subnet group | `ridenow-prod-db-subnet-group` |
 | `UserDb` | RDS DB instance (PostgreSQL) | `ridenow-prod-user-db` |
@@ -146,14 +146,14 @@ If a line starts with `STOP`, fix that problem and run the block again.
 | `NotificationDb` | RDS DB instance (PostgreSQL) | `ridenow-prod-notification-db` |
 | RDS-managed master secret (one per instance) | `AWS::SecretsManager::Secret` | Created by RDS in Secrets Manager, encrypted with `alias/ridenow-prod-rds` |
 
-Every instance uses the same settings:
+#### Common settings for all instances:
 
 | Setting | Value |
 |---|---|
 | Engine | PostgreSQL, latest `17.x` |
 | Deployment | Multi-AZ DB instance |
 | Instance class | `db.t4g.micro` |
-| Storage | gp3, 20 GiB, no storage autoscaling |
+| Storage | gp3, 20 GiB, storage autoscaling disabled |
 | Public access | No |
 | Encryption | Yes, with `alias/ridenow-prod-rds` |
 | Credentials | Managed in AWS Secrets Manager |
@@ -163,7 +163,7 @@ Every instance uses the same settings:
 | DB subnet group | `ridenow-prod-db-subnet-group` |
 | Security group | `ridenow-prod-db-sg` |
 
-Each instance has its own master user and initial database:
+#### Per-instance details:
 
 | Service | DB instance identifier | Master username | Initial database name |
 |---|---|---|---|
@@ -174,11 +174,11 @@ Each instance has its own master user and initial database:
 | Matching | `ridenow-prod-matching-db` | `matching` | `matching_service` |
 | Notification | `ridenow-prod-notification-db` | `notification` | `notification_service` |
 
-The databases follow the database-per-service rule: each service reads and writes only its own database, and no physical foreign key crosses a service boundary. Live driver locations are not stored in PostgreSQL.
+The databases follow the database-per-service rule: each service reads and writes only its own database, and no physical foreign key crosses a service boundary. Live driver location is not stored in PostgreSQL.
 
 ## Depends on
 
-Only 5.4. Select these by name in the console:
+Only 5.4. Select these resources by name in the console:
 
 | Needed from 5.4 | Select in the console | Variable |
 |---|---|---|
@@ -187,7 +187,7 @@ Only 5.4. Select these by name in the console:
 
 ## Create the resources
 
-Open the AWS console in the Asia Pacific (Singapore) `ap-southeast-1` region. Do the three steps in order.
+Open the AWS console in the Asia Pacific (Singapore) `ap-southeast-1` region. Complete the three steps in order.
 
 ### 1. KMS key (`DbKmsKey`, `DbKmsAlias`)
 
@@ -197,15 +197,15 @@ Open the AWS console in the Asia Pacific (Singapore) `ap-southeast-1` region. Do
 4. Under **Advanced options**, set **Key material origin** to `KMS`.
 5. Under **Advanced options**, set **Regionality** to `Single-Region key`.
 6. Select **Next**.
-7. Set **Alias** to `ridenow-prod-rds`. The console shows it as `alias/ridenow-prod-rds`.
+7. Set **Alias** to `ridenow-prod-rds`. The console will display it as `alias/ridenow-prod-rds`.
 8. Set **Description** to `ridenow-prod RDS encryption key`.
 9. Select **Next**.
-10. Under **Key administrators**, tick your own IAM user or role.
-11. Leave **Allow key administrators to delete this key** ticked, then select **Next**.
-12. Under **Key users**, tick nothing, then select **Next**.
+10. Under **Key administrators**, select your own IAM user or role.
+11. Leave **Allow key administrators to delete this key** checked, then select **Next**.
+12. Under **Key users**, select nothing, then select **Next**.
 13. On **Review**, select **Finish**.
-14. Open the new key and go to **Key policy -> Edit**.
-15. Run the command below in your shell, copy the JSON it prints, and paste it over the whole policy.
+14. Open the newly created key and go to **Key policy -> Edit**.
+15. Run the command below in your shell, copy the printed JSON, and paste it over the entire policy.
 
 ```bash
 cat <<EOF
@@ -226,9 +226,9 @@ EOF
 
 16. Select **Save changes**.
 17. Go to the **Key rotation** tab and select **Edit**.
-18. Tick **Enable automatic key rotation**, then select **Save**.
+18. Check **Enable automatic key rotation**, then select **Save**.
 
-The command prints the policy with your own account ID filled in. The wizard writes its own default policy, so this replacement is what matches the template.
+The command prints the policy with your own account ID filled in. The wizard writes its own default policy, so this replacement matches the template.
 
 ### 2. DB subnet group (`DbSubnetGroup`)
 
@@ -236,445 +236,51 @@ The command prints the policy with your own account ID filled in. The wizard wri
 2. Set **Name** to `ridenow-prod-db-subnet-group`.
 3. Set **Description** to `ridenow-prod RDS private subnets`.
 4. Set **VPC** to `ridenow-prod-vpc`.
-5. Under **Availability Zones**, tick the two zones of `ridenow-prod-private-1` and `ridenow-prod-private-2`.
-6. Under **Subnets**, tick the two private subnets. Check the CIDRs in **VPC -> Subnets** and do not pick `ridenow-prod-public-*`.
+5. Under **Availability Zones**, select the two AZs corresponding to `ridenow-prod-private-1` and `ridenow-prod-private-2`.
+6. Under **Subnets**, check the two private subnets. Verify the CIDRs in **VPC -> Subnets** and do not select `ridenow-prod-public-*`.
 7. Select **Create**.
 
-### 3. The six RDS instances
+### 3. Six RDS instances
 
-Create the six databases one after another. Each has its own heading below with every value filled in. Creation takes 10 to 20 minutes per instance, so start the next one while the previous one is Creating.
+Create the six databases one by one. Each has its own section below with all values filled in. Each instance takes 10 to 20 minutes to create, so start the next instance while the previous one is still in the Creating state.
 
-#### 3.1 `UserDb` (ridenow-prod-user-db)
+#### Procedure
 
-| Template ID | DB instance identifier | Master username | Initial database name |
-|---|---|---|---|
-| `UserDb` | `ridenow-prod-user-db` | `app_user` | `user_service` |
+Create each database (*user_service, driver_service, trip_service, payment_service, matching_service, notification_service*)following this procedure:
 
-**Start**
+1. **Start & Engine:** Go to **RDS -> Databases -> Create database -> Standard create**. Select PostgreSQL, latest `17.x`, template Dev/Test.
 
-1. Go to **RDS -> Databases -> Create database**.
-2. Select **Standard create**.
+2. **Availability & Instance:** Select **Multi-AZ DB instance** (do not select DB cluster); instance class **Burstable classes** -> `db.t4g.micro`.
 
-**Engine**
+3. **Storage:** Select `General Purpose SSD (gp3)`, 20 GiB, disable storage autoscaling.
 
-3. Set **Engine type** to `PostgreSQL`.
-4. Set **Engine version** to the latest `17.x` in the list.
-5. Set **Templates** to `Dev/Test`.
+4. **Connectivity:** No EC2 attachment, network IPv4, VPC: `ridenow-prod-vpc`, DB subnet group: `ridenow-prod-db-subnet-group`, Public access: `No`. Select SG `ridenow-prod-db-sg`, remove SG `default`, Availability Zone: `No preference`.
 
-**Availability and durability**
+5. **Authentication & Monitoring:** Select `Password authentication`; disable `Performance Insights` and `Enhanced monitoring`.
 
-6. Under **Deployment options**, select **Multi-AZ DB instance**. Do not pick Multi-AZ DB cluster.
+6. **Additional configuration & Create:**
+    - **Set Initial database name** per the table above (e.g. `user_service`).
+    - **Settings:** select Managed in AWS Secrets Manager, secret encryption key `alias/ridenow-prod-rds`.
+    - **Backup & Encryption:** enable automated backups (30 days), enable encryption with KMS key `alias/ridenow-prod-rds`, leave Enable auto minor version upgrade on, disable deletion protection.
+    - Click **Create database**.
 
-**Settings**
-
-7. Set **DB instance identifier** to `ridenow-prod-user-db`.
-8. Set **Master username** to `app_user`.
-9. Set **Credentials management** to **Managed in AWS Secrets Manager**.
-10. Set **Encryption key** (for the secret) to `alias/ridenow-prod-rds`.
-
-**Instance configuration**
-
-11. Select **Burstable classes** and choose `db.t4g.micro`.
-
-**Storage**
-
-12. Set **Storage type** to `General Purpose SSD (gp3)`.
-13. Set **Allocated storage** to `20` GiB.
-14. Untick **Enable storage autoscaling**.
-
-**Connectivity**
-
-15. Set **Compute resource** to **Don't connect to an EC2 compute resource**.
-16. Set **Network type** to `IPv4`.
-17. Set **Virtual private cloud (VPC)** to `ridenow-prod-vpc`.
-18. Set **DB subnet group** to `ridenow-prod-db-subnet-group`.
-19. Set **Public access** to `No`.
-20. Under **VPC security group (firewall)**, select **Choose existing** and pick `ridenow-prod-db-sg`.
-21. Remove `default` from the selected security groups.
-22. Set **Availability Zone** to `No preference`.
-
-**Database authentication**
-
-23. Select **Password authentication**.
-
-**Monitoring**
-
-24. Untick **Turn on Performance Insights**.
-25. Untick **Enable Enhanced monitoring**.
-
-**Additional configuration**
-
-26. Set **Initial database name** to `user_service`.
-27. Tick **Enable automated backups**.
-28. Set **Backup retention period** to `30` days.
-29. Tick **Enable encryption**.
-30. Set **AWS KMS key** to `alias/ridenow-prod-rds`.
-31. Leave **Enable auto minor version upgrade** ticked.
-32. Untick **Enable deletion protection**.
-33. Select **Create database**.
-
-#### 3.2 `DriverDb` (ridenow-prod-driver-db)
-
-| Template ID | DB instance identifier | Master username | Initial database name |
-|---|---|---|---|
-| `DriverDb` | `ridenow-prod-driver-db` | `driver` | `driver_service` |
-
-**Start**
-
-1. Go to **RDS -> Databases -> Create database**.
-2. Select **Standard create**.
-
-**Engine**
-
-3. Set **Engine type** to `PostgreSQL`.
-4. Set **Engine version** to the latest `17.x` in the list.
-5. Set **Templates** to `Dev/Test`.
-
-**Availability and durability**
-
-6. Under **Deployment options**, select **Multi-AZ DB instance**. Do not pick Multi-AZ DB cluster.
-
-**Settings**
-
-7. Set **DB instance identifier** to `ridenow-prod-driver-db`.
-8. Set **Master username** to `driver`.
-9. Set **Credentials management** to **Managed in AWS Secrets Manager**.
-10. Set **Encryption key** (for the secret) to `alias/ridenow-prod-rds`.
-
-**Instance configuration**
-
-11. Select **Burstable classes** and choose `db.t4g.micro`.
-
-**Storage**
-
-12. Set **Storage type** to `General Purpose SSD (gp3)`.
-13. Set **Allocated storage** to `20` GiB.
-14. Untick **Enable storage autoscaling**.
-
-**Connectivity**
-
-15. Set **Compute resource** to **Don't connect to an EC2 compute resource**.
-16. Set **Network type** to `IPv4`.
-17. Set **Virtual private cloud (VPC)** to `ridenow-prod-vpc`.
-18. Set **DB subnet group** to `ridenow-prod-db-subnet-group`.
-19. Set **Public access** to `No`.
-20. Under **VPC security group (firewall)**, select **Choose existing** and pick `ridenow-prod-db-sg`.
-21. Remove `default` from the selected security groups.
-22. Set **Availability Zone** to `No preference`.
-
-**Database authentication**
-
-23. Select **Password authentication**.
-
-**Monitoring**
-
-24. Untick **Turn on Performance Insights**.
-25. Untick **Enable Enhanced monitoring**.
-
-**Additional configuration**
-
-26. Set **Initial database name** to `driver_service`.
-27. Tick **Enable automated backups**.
-28. Set **Backup retention period** to `30` days.
-29. Tick **Enable encryption**.
-30. Set **AWS KMS key** to `alias/ridenow-prod-rds`.
-31. Leave **Enable auto minor version upgrade** ticked.
-32. Untick **Enable deletion protection**.
-33. Select **Create database**.
-
-#### 3.3 `TripDb` (ridenow-prod-trip-db)
-
-| Template ID | DB instance identifier | Master username | Initial database name |
-|---|---|---|---|
-| `TripDb` | `ridenow-prod-trip-db` | `trip` | `trip_service` |
-
-**Start**
-
-1. Go to **RDS -> Databases -> Create database**.
-2. Select **Standard create**.
-
-**Engine**
-
-3. Set **Engine type** to `PostgreSQL`.
-4. Set **Engine version** to the latest `17.x` in the list.
-5. Set **Templates** to `Dev/Test`.
-
-**Availability and durability**
-
-6. Under **Deployment options**, select **Multi-AZ DB instance**. Do not pick Multi-AZ DB cluster.
-
-**Settings**
-
-7. Set **DB instance identifier** to `ridenow-prod-trip-db`.
-8. Set **Master username** to `trip`.
-9. Set **Credentials management** to **Managed in AWS Secrets Manager**.
-10. Set **Encryption key** (for the secret) to `alias/ridenow-prod-rds`.
-
-**Instance configuration**
-
-11. Select **Burstable classes** and choose `db.t4g.micro`.
-
-**Storage**
-
-12. Set **Storage type** to `General Purpose SSD (gp3)`.
-13. Set **Allocated storage** to `20` GiB.
-14. Untick **Enable storage autoscaling**.
-
-**Connectivity**
-
-15. Set **Compute resource** to **Don't connect to an EC2 compute resource**.
-16. Set **Network type** to `IPv4`.
-17. Set **Virtual private cloud (VPC)** to `ridenow-prod-vpc`.
-18. Set **DB subnet group** to `ridenow-prod-db-subnet-group`.
-19. Set **Public access** to `No`.
-20. Under **VPC security group (firewall)**, select **Choose existing** and pick `ridenow-prod-db-sg`.
-21. Remove `default` from the selected security groups.
-22. Set **Availability Zone** to `No preference`.
-
-**Database authentication**
-
-23. Select **Password authentication**.
-
-**Monitoring**
-
-24. Untick **Turn on Performance Insights**.
-25. Untick **Enable Enhanced monitoring**.
-
-**Additional configuration**
-
-26. Set **Initial database name** to `trip_service`.
-27. Tick **Enable automated backups**.
-28. Set **Backup retention period** to `30` days.
-29. Tick **Enable encryption**.
-30. Set **AWS KMS key** to `alias/ridenow-prod-rds`.
-31. Leave **Enable auto minor version upgrade** ticked.
-32. Untick **Enable deletion protection**.
-33. Select **Create database**.
-
-#### 3.4 `PaymentDb` (ridenow-prod-payment-db)
-
-| Template ID | DB instance identifier | Master username | Initial database name |
-|---|---|---|---|
-| `PaymentDb` | `ridenow-prod-payment-db` | `payment` | `payment_service` |
-
-**Start**
-
-1. Go to **RDS -> Databases -> Create database**.
-2. Select **Standard create**.
-
-**Engine**
-
-3. Set **Engine type** to `PostgreSQL`.
-4. Set **Engine version** to the latest `17.x` in the list.
-5. Set **Templates** to `Dev/Test`.
-
-**Availability and durability**
-
-6. Under **Deployment options**, select **Multi-AZ DB instance**. Do not pick Multi-AZ DB cluster.
-
-**Settings**
-
-7. Set **DB instance identifier** to `ridenow-prod-payment-db`.
-8. Set **Master username** to `payment`.
-9. Set **Credentials management** to **Managed in AWS Secrets Manager**.
-10. Set **Encryption key** (for the secret) to `alias/ridenow-prod-rds`.
-
-**Instance configuration**
-
-11. Select **Burstable classes** and choose `db.t4g.micro`.
-
-**Storage**
-
-12. Set **Storage type** to `General Purpose SSD (gp3)`.
-13. Set **Allocated storage** to `20` GiB.
-14. Untick **Enable storage autoscaling**.
-
-**Connectivity**
-
-15. Set **Compute resource** to **Don't connect to an EC2 compute resource**.
-16. Set **Network type** to `IPv4`.
-17. Set **Virtual private cloud (VPC)** to `ridenow-prod-vpc`.
-18. Set **DB subnet group** to `ridenow-prod-db-subnet-group`.
-19. Set **Public access** to `No`.
-20. Under **VPC security group (firewall)**, select **Choose existing** and pick `ridenow-prod-db-sg`.
-21. Remove `default` from the selected security groups.
-22. Set **Availability Zone** to `No preference`.
-
-**Database authentication**
-
-23. Select **Password authentication**.
-
-**Monitoring**
-
-24. Untick **Turn on Performance Insights**.
-25. Untick **Enable Enhanced monitoring**.
-
-**Additional configuration**
-
-26. Set **Initial database name** to `payment_service`.
-27. Tick **Enable automated backups**.
-28. Set **Backup retention period** to `30` days.
-29. Tick **Enable encryption**.
-30. Set **AWS KMS key** to `alias/ridenow-prod-rds`.
-31. Leave **Enable auto minor version upgrade** ticked.
-32. Untick **Enable deletion protection**.
-33. Select **Create database**.
-
-#### 3.5 `MatchingDb` (ridenow-prod-matching-db)
-
-| Template ID | DB instance identifier | Master username | Initial database name |
-|---|---|---|---|
-| `MatchingDb` | `ridenow-prod-matching-db` | `matching` | `matching_service` |
-
-**Start**
-
-1. Go to **RDS -> Databases -> Create database**.
-2. Select **Standard create**.
-
-**Engine**
-
-3. Set **Engine type** to `PostgreSQL`.
-4. Set **Engine version** to the latest `17.x` in the list.
-5. Set **Templates** to `Dev/Test`.
-
-**Availability and durability**
-
-6. Under **Deployment options**, select **Multi-AZ DB instance**. Do not pick Multi-AZ DB cluster.
-
-**Settings**
-
-7. Set **DB instance identifier** to `ridenow-prod-matching-db`.
-8. Set **Master username** to `matching`.
-9. Set **Credentials management** to **Managed in AWS Secrets Manager**.
-10. Set **Encryption key** (for the secret) to `alias/ridenow-prod-rds`.
-
-**Instance configuration**
-
-11. Select **Burstable classes** and choose `db.t4g.micro`.
-
-**Storage**
-
-12. Set **Storage type** to `General Purpose SSD (gp3)`.
-13. Set **Allocated storage** to `20` GiB.
-14. Untick **Enable storage autoscaling**.
-
-**Connectivity**
-
-15. Set **Compute resource** to **Don't connect to an EC2 compute resource**.
-16. Set **Network type** to `IPv4`.
-17. Set **Virtual private cloud (VPC)** to `ridenow-prod-vpc`.
-18. Set **DB subnet group** to `ridenow-prod-db-subnet-group`.
-19. Set **Public access** to `No`.
-20. Under **VPC security group (firewall)**, select **Choose existing** and pick `ridenow-prod-db-sg`.
-21. Remove `default` from the selected security groups.
-22. Set **Availability Zone** to `No preference`.
-
-**Database authentication**
-
-23. Select **Password authentication**.
-
-**Monitoring**
-
-24. Untick **Turn on Performance Insights**.
-25. Untick **Enable Enhanced monitoring**.
-
-**Additional configuration**
-
-26. Set **Initial database name** to `matching_service`.
-27. Tick **Enable automated backups**.
-28. Set **Backup retention period** to `30` days.
-29. Tick **Enable encryption**.
-30. Set **AWS KMS key** to `alias/ridenow-prod-rds`.
-31. Leave **Enable auto minor version upgrade** ticked.
-32. Untick **Enable deletion protection**.
-33. Select **Create database**.
-
-#### 3.6 `NotificationDb` (ridenow-prod-notification-db)
-
-| Template ID | DB instance identifier | Master username | Initial database name |
-|---|---|---|---|
-| `NotificationDb` | `ridenow-prod-notification-db` | `notification` | `notification_service` |
-
-**Start**
-
-1. Go to **RDS -> Databases -> Create database**.
-2. Select **Standard create**.
-
-**Engine**
-
-3. Set **Engine type** to `PostgreSQL`.
-4. Set **Engine version** to the latest `17.x` in the list.
-5. Set **Templates** to `Dev/Test`.
-
-**Availability and durability**
-
-6. Under **Deployment options**, select **Multi-AZ DB instance**. Do not pick Multi-AZ DB cluster.
-
-**Settings**
-
-7. Set **DB instance identifier** to `ridenow-prod-notification-db`.
-8. Set **Master username** to `notification`.
-9. Set **Credentials management** to **Managed in AWS Secrets Manager**.
-10. Set **Encryption key** (for the secret) to `alias/ridenow-prod-rds`.
-
-**Instance configuration**
-
-11. Select **Burstable classes** and choose `db.t4g.micro`.
-
-**Storage**
-
-12. Set **Storage type** to `General Purpose SSD (gp3)`.
-13. Set **Allocated storage** to `20` GiB.
-14. Untick **Enable storage autoscaling**.
-
-**Connectivity**
-
-15. Set **Compute resource** to **Don't connect to an EC2 compute resource**.
-16. Set **Network type** to `IPv4`.
-17. Set **Virtual private cloud (VPC)** to `ridenow-prod-vpc`.
-18. Set **DB subnet group** to `ridenow-prod-db-subnet-group`.
-19. Set **Public access** to `No`.
-20. Under **VPC security group (firewall)**, select **Choose existing** and pick `ridenow-prod-db-sg`.
-21. Remove `default` from the selected security groups.
-22. Set **Availability Zone** to `No preference`.
-
-**Database authentication**
-
-23. Select **Password authentication**.
-
-**Monitoring**
-
-24. Untick **Turn on Performance Insights**.
-25. Untick **Enable Enhanced monitoring**.
-
-**Additional configuration**
-
-26. Set **Initial database name** to `notification_service`.
-27. Tick **Enable automated backups**.
-28. Set **Backup retention period** to `30` days.
-29. Tick **Enable encryption**.
-30. Set **AWS KMS key** to `alias/ridenow-prod-rds`.
-31. Leave **Enable auto minor version upgrade** ticked.
-32. Untick **Enable deletion protection**.
-33. Select **Create database**.
-
-Leave everything not listed at its default. When you delete an instance later, keep **Create final snapshot** ticked.
+> Leave everything not listed at its default. When deleting an instance later, keep **Create final snapshot** checked.
 
 ## Values to record
 
-Run the second block of Set variables now. The values below are looked up for you, so you copy nothing by hand. Later pages restate the same lookups at their top.
+Run the second block of the Set variables section now. The values below are looked up automatically, so you copy nothing by hand. Later pages repeat the same lookups at the top of each page.
 
 | Variable | What it holds | Used by |
 |---|---|---|
-| `RDS_KMS_KEY_ARN` | ARN of the key behind `alias/ridenow-prod-rds` | 5.8 (policy that lets External Secrets decrypt the database secrets) |
+| `RDS_KMS_KEY_ARN` | ARN of the key behind `alias/ridenow-prod-rds` | 5.8 (policy that lets External Secrets decrypt database secrets) |
 | `USER_DB_ENDPOINT`, `DRIVER_DB_ENDPOINT`, `TRIP_DB_ENDPOINT`, `PAYMENT_DB_ENDPOINT`, `MATCHING_DB_ENDPOINT`, `NOTIFICATION_DB_ENDPOINT` | Host name of each instance | 5.9 (database connection of each workload) |
-| `USER_DB_SECRET_ARN`, `DRIVER_DB_SECRET_ARN`, `TRIP_DB_SECRET_ARN`, `PAYMENT_DB_SECRET_ARN`, `MATCHING_DB_SECRET_ARN`, `NOTIFICATION_DB_SECRET_ARN` | ARN of the RDS-managed master secret of each instance | 5.8 (database secrets read by External Secrets) |
+| `USER_DB_SECRET_ARN`, `DRIVER_DB_SECRET_ARN`, `TRIP_DB_SECRET_ARN`, `PAYMENT_DB_SECRET_ARN`, `MATCHING_DB_SECRET_ARN`, `NOTIFICATION_DB_SECRET_ARN` | ARN of the RDS-managed master secret for each instance | 5.8 (database secrets read by External Secrets) |
 
-All thirteen values have a lookup command, so none of them is a Manual_Value. The console shows the same data under **RDS -> Databases -> the instance -> Connectivity & security** (endpoint) and **Configuration** (master credentials ARN).
+All thirteen values have a lookup command, so none of them is a manual value. The console shows the same data under **RDS -> Databases -> instance -> Connectivity & security** (endpoint) and **Configuration** (master credentials ARN).
 
 ## Post-deploy steps
 
-No post-deploy step is needed for this page. The inbound rule that lets the cluster reach the databases on port 5432 is created in 5.9.
+No post-deploy step is needed for this page. The inbound rule that allows the cluster to reach the databases on port 5432 is created in 5.9.
 
 ## Verify
 
@@ -687,7 +293,7 @@ aws rds describe-db-instances \
 aws kms get-key-rotation-status --key-id "alias/${CLUSTER_NAME}-rds" --query KeyRotationEnabled --output text
 ```
 
-Expected result: six rows, each with `available`, `True`, `True`, `False`, and `30`; then `True` for key rotation. If a row is missing or not `available`, open **RDS -> Databases -> that instance -> Logs & events**.
+Expected result: six rows, each with `available`, `True`, `True`, `False`, and `30`; then `True` for key rotation. If a row is missing or the status is not `available`, open **RDS -> Databases -> that instance -> Logs & events**.
 
 ```bash
 aws rds describe-db-instances \
@@ -697,12 +303,10 @@ echo "DB_SG_ID=$DB_SG_ID"
 aws secretsmanager describe-secret --secret-id "$USER_DB_SECRET_ARN" --query KmsKeyId --output text
 ```
 
-Expected result: the first line is the same security group ID as `DB_SG_ID` (one line only), and the last line is the key ARN of `alias/ridenow-prod-rds`:
+Expected result: the first line is the security group ID matching `DB_SG_ID` (one line only), and the last line is the key ARN of `alias/ridenow-prod-rds`:
 
 ```text
 sg-0fff...
 DB_SG_ID=sg-0fff...
 arn:aws:kms:ap-southeast-1:123456789012:key/1234abcd-...
 ```
-
-The next page is 5.7 Messaging.

@@ -10,7 +10,7 @@ Trang này tạo tầng dữ liệu của môi trường `prod`: một khoá KMS
 
 ## Set variables
 
-Chạy khối đầu tiên trong một shell mới. Khối này lặp lại các biến dùng chung từ mục 5.2 và các biến mạng từ mục 5.4, mỗi biến có lệnh tra cứu riêng:
+Trước khi thao tác, hãy mở một phiên shell mới để chạy khối lệnh kiểm tra các tài nguyên nền tảng từ mục 5.2 và các biến mạng từ mục 5.4, mỗi biến có một lệnh con kiểm tra riêng. Cơ chế kiểm tra `STOP` giúp phát hiện sớm biến thiếu hoặc sai cấu hình trước khi tạo tài nguyên.
 
 ```bash
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -129,7 +129,7 @@ NOTIFICATION_DB_ENDPOINT=ridenow-prod-notification-db.xxxx.ap-southeast-1.rds.am
 NOTIFICATION_DB_SECRET_ARN=arn:aws:secretsmanager:ap-southeast-1:123456789012:secret:rds!db-...
 ```
 
-Nếu có dòng bắt đầu bằng `STOP`, hãy sửa lỗi đó rồi chạy lại khối lệnh.
+Nếu có dòng bắt đầu bằng `STOP`, tiếp tục vòng lặp sửa lỗi - chạy lại khối lệnh.
 
 ## What it creates
 
@@ -146,7 +146,7 @@ Nếu có dòng bắt đầu bằng `STOP`, hãy sửa lỗi đó rồi chạy l
 | `NotificationDb` | RDS DB instance (PostgreSQL) | `ridenow-prod-notification-db` |
 | Secret master do RDS quản lý (mỗi instance một secret) | `AWS::SecretsManager::Secret` | RDS tạo trong Secrets Manager, mã hoá bằng `alias/ridenow-prod-rds` |
 
-Mọi instance dùng cùng một cấu hình:
+#### Bảng cấu hình chung mọi instance:
 
 | Thiết lập | Giá trị |
 |---|---|
@@ -163,7 +163,7 @@ Mọi instance dùng cùng một cấu hình:
 | DB subnet group | `ridenow-prod-db-subnet-group` |
 | Security group | `ridenow-prod-db-sg` |
 
-Mỗi instance có master user và database khởi tạo riêng:
+#### Bảng thông tin riêng mỗi instance:
 
 | Service | DB instance identifier | Master username | Tên database khởi tạo |
 |---|---|---|---|
@@ -244,421 +244,27 @@ Lệnh in ra policy với ID tài khoản của chính bạn. Wizard tự ghi m�
 
 Tạo sáu database lần lượt từng cái. Mỗi database có một đề mục riêng bên dưới với đầy đủ giá trị. Mỗi instance mất 10 đến 20 phút để tạo, nên hãy bắt đầu instance tiếp theo khi instance trước đang ở trạng thái Creating.
 
-#### 3.1 `UserDb` (ridenow-prod-user-db)
+#### Quy trình thực hiện
 
-| Template ID | DB instance identifier | Master username | Tên database khởi tạo |
-|---|---|---|---|
-| `UserDb` | `ridenow-prod-user-db` | `app_user` | `user_service` |
+Lần lượt khởi tạo các database *user_service, driver_service, trip_service, payment_service, matching_service, notification_service.* theo quy trình.
 
-**Bắt đầu**
+1. **Khởi tạo & Engine:** Vào RDS -> Databases -> Create database -> Standard create. Chọn PostgreSQL bản 17.x mới nhất, template Dev/Test.
 
-1. Vào **RDS -> Databases -> Create database**.
-2. Chọn **Standard create**.
+2. **Availability & Instance:** Chọn `Multi-AZ DB instance` (không chọn DB cluster); instance class `Burstable classes` -> `db.t4g.micro.`
 
-**Engine**
+3. **Storage:** Chọn `General Purpose SSD (gp3)`, 20 GiB, tắt storage autoscaling.
 
-3. Đặt **Engine type** là `PostgreSQL`.
-4. Đặt **Engine version** là bản `17.x` mới nhất trong danh sách.
-5. Đặt **Templates** là `Dev/Test`.
+4. **Connectivity:** Không gắn EC2, mạng IPv4, VPC: `ridenow-prod-vpc`, DB subnet group: `ridenow-prod-db-subnet-group`, Public access: `No`. Chọn SG `ridenow-prod-db-sg`, xoá SG `default`, Availability Zone: `No preference`.
 
-**Availability and durability**
+5. **Authentication & Monitoring:** Chọn `Password authentication`; tắt `Performance Insights` và `Enhanced monitoring`.
 
-6. Trong **Deployment options**, chọn **Multi-AZ DB instance**. Không chọn Multi-AZ DB cluster.
+6. **Additional configuration & Tạo:**
+    - **Đặt Initial database name** theo bảng trên (ví dụ: user_service).
+    - **Settings:** chọn Managed in AWS Secrets Manager, secret encryption key `alias/ridenow-prod-rds`.
+    - **Backup & Encryption:** bật automated backups (30 ngày), bật encryption với KMS key `alias/ridenow-prod-rds`, giữ Enable auto minor version upgrade, tắt deletion protection.
+    - Nhấn **Create database.**
 
-**Settings**
-
-7. Đặt **DB instance identifier** là `ridenow-prod-user-db`.
-8. Đặt **Master username** là `app_user`.
-9. Đặt **Credentials management** là **Managed in AWS Secrets Manager**.
-10. Đặt **Encryption key** (cho secret) là `alias/ridenow-prod-rds`.
-
-**Instance configuration**
-
-11. Chọn **Burstable classes** và chọn `db.t4g.micro`.
-
-**Storage**
-
-12. Đặt **Storage type** là `General Purpose SSD (gp3)`.
-13. Đặt **Allocated storage** là `20` GiB.
-14. Bỏ chọn **Enable storage autoscaling**.
-
-**Connectivity**
-
-15. Đặt **Compute resource** là **Don't connect to an EC2 compute resource**.
-16. Đặt **Network type** là `IPv4`.
-17. Đặt **Virtual private cloud (VPC)** là `ridenow-prod-vpc`.
-18. Đặt **DB subnet group** là `ridenow-prod-db-subnet-group`.
-19. Đặt **Public access** là `No`.
-20. Trong **VPC security group (firewall)**, chọn **Choose existing** và chọn `ridenow-prod-db-sg`.
-21. Xoá `default` khỏi các security group đã chọn.
-22. Đặt **Availability Zone** là `No preference`.
-
-**Database authentication**
-
-23. Chọn **Password authentication**.
-
-**Monitoring**
-
-24. Bỏ chọn **Turn on Performance Insights**.
-25. Bỏ chọn **Enable Enhanced monitoring**.
-
-**Additional configuration**
-
-26. Đặt **Initial database name** là `user_service`.
-27. Chọn **Enable automated backups**.
-28. Đặt **Backup retention period** là `30` ngày.
-29. Chọn **Enable encryption**.
-30. Đặt **AWS KMS key** là `alias/ridenow-prod-rds`.
-31. Giữ nguyên **Enable auto minor version upgrade** đã chọn.
-32. Bỏ chọn **Enable deletion protection**.
-33. Chọn **Create database**.
-
-#### 3.2 `DriverDb` (ridenow-prod-driver-db)
-
-| Template ID | DB instance identifier | Master username | Tên database khởi tạo |
-|---|---|---|---|
-| `DriverDb` | `ridenow-prod-driver-db` | `driver` | `driver_service` |
-
-**Bắt đầu**
-
-1. Vào **RDS -> Databases -> Create database**.
-2. Chọn **Standard create**.
-
-**Engine**
-
-3. Đặt **Engine type** là `PostgreSQL`.
-4. Đặt **Engine version** là bản `17.x` mới nhất trong danh sách.
-5. Đặt **Templates** là `Dev/Test`.
-
-**Availability and durability**
-
-6. Trong **Deployment options**, chọn **Multi-AZ DB instance**. Không chọn Multi-AZ DB cluster.
-
-**Settings**
-
-7. Đặt **DB instance identifier** là `ridenow-prod-driver-db`.
-8. Đặt **Master username** là `driver`.
-9. Đặt **Credentials management** là **Managed in AWS Secrets Manager**.
-10. Đặt **Encryption key** (cho secret) là `alias/ridenow-prod-rds`.
-
-**Instance configuration**
-
-11. Chọn **Burstable classes** và chọn `db.t4g.micro`.
-
-**Storage**
-
-12. Đặt **Storage type** là `General Purpose SSD (gp3)`.
-13. Đặt **Allocated storage** là `20` GiB.
-14. Bỏ chọn **Enable storage autoscaling**.
-
-**Connectivity**
-
-15. Đặt **Compute resource** là **Don't connect to an EC2 compute resource**.
-16. Đặt **Network type** là `IPv4`.
-17. Đặt **Virtual private cloud (VPC)** là `ridenow-prod-vpc`.
-18. Đặt **DB subnet group** là `ridenow-prod-db-subnet-group`.
-19. Đặt **Public access** là `No`.
-20. Trong **VPC security group (firewall)**, chọn **Choose existing** và chọn `ridenow-prod-db-sg`.
-21. Xoá `default` khỏi các security group đã chọn.
-22. Đặt **Availability Zone** là `No preference`.
-
-**Database authentication**
-
-23. Chọn **Password authentication**.
-
-**Monitoring**
-
-24. Bỏ chọn **Turn on Performance Insights**.
-25. Bỏ chọn **Enable Enhanced monitoring**.
-
-**Additional configuration**
-
-26. Đặt **Initial database name** là `driver_service`.
-27. Chọn **Enable automated backups**.
-28. Đặt **Backup retention period** là `30` ngày.
-29. Chọn **Enable encryption**.
-30. Đặt **AWS KMS key** là `alias/ridenow-prod-rds`.
-31. Giữ nguyên **Enable auto minor version upgrade** đã chọn.
-32. Bỏ chọn **Enable deletion protection**.
-33. Chọn **Create database**.
-
-#### 3.3 `TripDb` (ridenow-prod-trip-db)
-
-| Template ID | DB instance identifier | Master username | Tên database khởi tạo |
-|---|---|---|---|
-| `TripDb` | `ridenow-prod-trip-db` | `trip` | `trip_service` |
-
-**Bắt đầu**
-
-1. Vào **RDS -> Databases -> Create database**.
-2. Chọn **Standard create**.
-
-**Engine**
-
-3. Đặt **Engine type** là `PostgreSQL`.
-4. Đặt **Engine version** là bản `17.x` mới nhất trong danh sách.
-5. Đặt **Templates** là `Dev/Test`.
-
-**Availability and durability**
-
-6. Trong **Deployment options**, chọn **Multi-AZ DB instance**. Không chọn Multi-AZ DB cluster.
-
-**Settings**
-
-7. Đặt **DB instance identifier** là `ridenow-prod-trip-db`.
-8. Đặt **Master username** là `trip`.
-9. Đặt **Credentials management** là **Managed in AWS Secrets Manager**.
-10. Đặt **Encryption key** (cho secret) là `alias/ridenow-prod-rds`.
-
-**Instance configuration**
-
-11. Chọn **Burstable classes** và chọn `db.t4g.micro`.
-
-**Storage**
-
-12. Đặt **Storage type** là `General Purpose SSD (gp3)`.
-13. Đặt **Allocated storage** là `20` GiB.
-14. Bỏ chọn **Enable storage autoscaling**.
-
-**Connectivity**
-
-15. Đặt **Compute resource** là **Don't connect to an EC2 compute resource**.
-16. Đặt **Network type** là `IPv4`.
-17. Đặt **Virtual private cloud (VPC)** là `ridenow-prod-vpc`.
-18. Đặt **DB subnet group** là `ridenow-prod-db-subnet-group`.
-19. Đặt **Public access** là `No`.
-20. Trong **VPC security group (firewall)**, chọn **Choose existing** và chọn `ridenow-prod-db-sg`.
-21. Xoá `default` khỏi các security group đã chọn.
-22. Đặt **Availability Zone** là `No preference`.
-
-**Database authentication**
-
-23. Chọn **Password authentication**.
-
-**Monitoring**
-
-24. Bỏ chọn **Turn on Performance Insights**.
-25. Bỏ chọn **Enable Enhanced monitoring**.
-
-**Additional configuration**
-
-26. Đặt **Initial database name** là `trip_service`.
-27. Chọn **Enable automated backups**.
-28. Đặt **Backup retention period** là `30` ngày.
-29. Chọn **Enable encryption**.
-30. Đặt **AWS KMS key** là `alias/ridenow-prod-rds`.
-31. Giữ nguyên **Enable auto minor version upgrade** đã chọn.
-32. Bỏ chọn **Enable deletion protection**.
-33. Chọn **Create database**.
-
-#### 3.4 `PaymentDb` (ridenow-prod-payment-db)
-
-| Template ID | DB instance identifier | Master username | Tên database khởi tạo |
-|---|---|---|---|
-| `PaymentDb` | `ridenow-prod-payment-db` | `payment` | `payment_service` |
-
-**Bắt đầu**
-
-1. Vào **RDS -> Databases -> Create database**.
-2. Chọn **Standard create**.
-
-**Engine**
-
-3. Đặt **Engine type** là `PostgreSQL`.
-4. Đặt **Engine version** là bản `17.x` mới nhất trong danh sách.
-5. Đặt **Templates** là `Dev/Test`.
-
-**Availability and durability**
-
-6. Trong **Deployment options**, chọn **Multi-AZ DB instance**. Không chọn Multi-AZ DB cluster.
-
-**Settings**
-
-7. Đặt **DB instance identifier** là `ridenow-prod-payment-db`.
-8. Đặt **Master username** là `payment`.
-9. Đặt **Credentials management** là **Managed in AWS Secrets Manager**.
-10. Đặt **Encryption key** (cho secret) là `alias/ridenow-prod-rds`.
-
-**Instance configuration**
-
-11. Chọn **Burstable classes** và chọn `db.t4g.micro`.
-
-**Storage**
-
-12. Đặt **Storage type** là `General Purpose SSD (gp3)`.
-13. Đặt **Allocated storage** là `20` GiB.
-14. Bỏ chọn **Enable storage autoscaling**.
-
-**Connectivity**
-
-15. Đặt **Compute resource** là **Don't connect to an EC2 compute resource**.
-16. Đặt **Network type** là `IPv4`.
-17. Đặt **Virtual private cloud (VPC)** là `ridenow-prod-vpc`.
-18. Đặt **DB subnet group** là `ridenow-prod-db-subnet-group`.
-19. Đặt **Public access** là `No`.
-20. Trong **VPC security group (firewall)**, chọn **Choose existing** và chọn `ridenow-prod-db-sg`.
-21. Xoá `default` khỏi các security group đã chọn.
-22. Đặt **Availability Zone** là `No preference`.
-
-**Database authentication**
-
-23. Chọn **Password authentication**.
-
-**Monitoring**
-
-24. Bỏ chọn **Turn on Performance Insights**.
-25. Bỏ chọn **Enable Enhanced monitoring**.
-
-**Additional configuration**
-
-26. Đặt **Initial database name** là `payment_service`.
-27. Chọn **Enable automated backups**.
-28. Đặt **Backup retention period** là `30` ngày.
-29. Chọn **Enable encryption**.
-30. Đặt **AWS KMS key** là `alias/ridenow-prod-rds`.
-31. Giữ nguyên **Enable auto minor version upgrade** đã chọn.
-32. Bỏ chọn **Enable deletion protection**.
-33. Chọn **Create database**.
-
-#### 3.5 `MatchingDb` (ridenow-prod-matching-db)
-
-| Template ID | DB instance identifier | Master username | Tên database khởi tạo |
-|---|---|---|---|
-| `MatchingDb` | `ridenow-prod-matching-db` | `matching` | `matching_service` |
-
-**Bắt đầu**
-
-1. Vào **RDS -> Databases -> Create database**.
-2. Chọn **Standard create**.
-
-**Engine**
-
-3. Đặt **Engine type** là `PostgreSQL`.
-4. Đặt **Engine version** là bản `17.x` mới nhất trong danh sách.
-5. Đặt **Templates** là `Dev/Test`.
-
-**Availability and durability**
-
-6. Trong **Deployment options**, chọn **Multi-AZ DB instance**. Không chọn Multi-AZ DB cluster.
-
-**Settings**
-
-7. Đặt **DB instance identifier** là `ridenow-prod-matching-db`.
-8. Đặt **Master username** là `matching`.
-9. Đặt **Credentials management** là **Managed in AWS Secrets Manager**.
-10. Đặt **Encryption key** (cho secret) là `alias/ridenow-prod-rds`.
-
-**Instance configuration**
-
-11. Chọn **Burstable classes** và chọn `db.t4g.micro`.
-
-**Storage**
-
-12. Đặt **Storage type** là `General Purpose SSD (gp3)`.
-13. Đặt **Allocated storage** là `20` GiB.
-14. Bỏ chọn **Enable storage autoscaling**.
-
-**Connectivity**
-
-15. Đặt **Compute resource** là **Don't connect to an EC2 compute resource**.
-16. Đặt **Network type** là `IPv4`.
-17. Đặt **Virtual private cloud (VPC)** là `ridenow-prod-vpc`.
-18. Đặt **DB subnet group** là `ridenow-prod-db-subnet-group`.
-19. Đặt **Public access** là `No`.
-20. Trong **VPC security group (firewall)**, chọn **Choose existing** và chọn `ridenow-prod-db-sg`.
-21. Xoá `default` khỏi các security group đã chọn.
-22. Đặt **Availability Zone** là `No preference`.
-
-**Database authentication**
-
-23. Chọn **Password authentication**.
-
-**Monitoring**
-
-24. Bỏ chọn **Turn on Performance Insights**.
-25. Bỏ chọn **Enable Enhanced monitoring**.
-
-**Additional configuration**
-
-26. Đặt **Initial database name** là `matching_service`.
-27. Chọn **Enable automated backups**.
-28. Đặt **Backup retention period** là `30` ngày.
-29. Chọn **Enable encryption**.
-30. Đặt **AWS KMS key** là `alias/ridenow-prod-rds`.
-31. Giữ nguyên **Enable auto minor version upgrade** đã chọn.
-32. Bỏ chọn **Enable deletion protection**.
-33. Chọn **Create database**.
-
-#### 3.6 `NotificationDb` (ridenow-prod-notification-db)
-
-| Template ID | DB instance identifier | Master username | Tên database khởi tạo |
-|---|---|---|---|
-| `NotificationDb` | `ridenow-prod-notification-db` | `notification` | `notification_service` |
-
-**Bắt đầu**
-
-1. Vào **RDS -> Databases -> Create database**.
-2. Chọn **Standard create**.
-
-**Engine**
-
-3. Đặt **Engine type** là `PostgreSQL`.
-4. Đặt **Engine version** là bản `17.x` mới nhất trong danh sách.
-5. Đặt **Templates** là `Dev/Test`.
-
-**Availability and durability**
-
-6. Trong **Deployment options**, chọn **Multi-AZ DB instance**. Không chọn Multi-AZ DB cluster.
-
-**Settings**
-
-7. Đặt **DB instance identifier** là `ridenow-prod-notification-db`.
-8. Đặt **Master username** là `notification`.
-9. Đặt **Credentials management** là **Managed in AWS Secrets Manager**.
-10. Đặt **Encryption key** (cho secret) là `alias/ridenow-prod-rds`.
-
-**Instance configuration**
-
-11. Chọn **Burstable classes** và chọn `db.t4g.micro`.
-
-**Storage**
-
-12. Đặt **Storage type** là `General Purpose SSD (gp3)`.
-13. Đặt **Allocated storage** là `20` GiB.
-14. Bỏ chọn **Enable storage autoscaling**.
-
-**Connectivity**
-
-15. Đặt **Compute resource** là **Don't connect to an EC2 compute resource**.
-16. Đặt **Network type** là `IPv4`.
-17. Đặt **Virtual private cloud (VPC)** là `ridenow-prod-vpc`.
-18. Đặt **DB subnet group** là `ridenow-prod-db-subnet-group`.
-19. Đặt **Public access** là `No`.
-20. Trong **VPC security group (firewall)**, chọn **Choose existing** và chọn `ridenow-prod-db-sg`.
-21. Xoá `default` khỏi các security group đã chọn.
-22. Đặt **Availability Zone** là `No preference`.
-
-**Database authentication**
-
-23. Chọn **Password authentication**.
-
-**Monitoring**
-
-24. Bỏ chọn **Turn on Performance Insights**.
-25. Bỏ chọn **Enable Enhanced monitoring**.
-
-**Additional configuration**
-
-26. Đặt **Initial database name** là `notification_service`.
-27. Chọn **Enable automated backups**.
-28. Đặt **Backup retention period** là `30` ngày.
-29. Chọn **Enable encryption**.
-30. Đặt **AWS KMS key** là `alias/ridenow-prod-rds`.
-31. Giữ nguyên **Enable auto minor version upgrade** đã chọn.
-32. Bỏ chọn **Enable deletion protection**.
-33. Chọn **Create database**.
-
-Giữ mặc định cho mọi mục không được liệt kê. Khi xoá instance sau này, hãy giữ **Create final snapshot** được chọn.
+> Với **NotificationDb:** Giữ mặc định cho mọi mục không được liệt kê. Khi xoá instance sau này, hãy giữ **Create final snapshot** được chọn.
 
 ## Values to record
 
@@ -705,4 +311,3 @@ DB_SG_ID=sg-0fff...
 arn:aws:kms:ap-southeast-1:123456789012:key/1234abcd-...
 ```
 
-Trang tiếp theo là 5.7 Messaging.
