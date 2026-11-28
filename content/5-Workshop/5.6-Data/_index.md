@@ -54,7 +54,7 @@ DB_SG_ID=sg-0fff...
 
 If any line starts with `STOP`, fix that problem and run the block again.
 
-The data variables look up resources you create on this page. Run the second block only after completing the Create the resources section — not before. Each lookup finds its resource by name.
+The data variables look up resources you create on this page. Run the second block only after completing the Create the resources section, not before. Each lookup finds its resource by name.
 
 ```bash
 RDS_KMS_KEY_ARN=$(aws kms describe-key --key-id "alias/${CLUSTER_NAME}-rds" --query KeyMetadata.Arn --output text 2>/dev/null)
@@ -274,7 +274,7 @@ Create the six databases one by one. Each instance takes 10 to 20 minutes to cre
 
 #### Procedure
 
-Create each database — *user_service, driver_service, trip_service, payment_service, matching_service, notification_service* — following this procedure:
+Create each database (*user_service, driver_service, trip_service, payment_service, matching_service, notification_service*) following this procedure:
 
 ![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-121117.png)
 
@@ -345,7 +345,11 @@ aws rds describe-db-instances \
 aws kms get-key-rotation-status --key-id "alias/${CLUSTER_NAME}-rds" --query KeyRotationEnabled --output text
 ```
 
-Expected result: six rows, each with `available`, `True`, `True`, `False`, and `30`; then `True` for key rotation. If a row is missing or the status is not `available`, open **RDS -> Databases -> that instance -> Logs & events**.
+Expected result: six rows, each with `available`, `True`, `True`, `False`, and `30`; then `True` for key rotation. 
+
+![Verify](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/verify-170541.png)
+
+If a row is missing or the status is not `available`, open **RDS -> Databases -> that instance -> Logs & events**.
 
 ```bash
 aws rds describe-db-instances \

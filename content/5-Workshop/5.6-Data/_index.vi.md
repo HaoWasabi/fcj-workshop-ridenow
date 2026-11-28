@@ -345,7 +345,11 @@ aws rds describe-db-instances \
 aws kms get-key-rotation-status --key-id "alias/${CLUSTER_NAME}-rds" --query KeyRotationEnabled --output text
 ```
 
-Kết quả mong đợi: sáu dòng, mỗi dòng có `available`, `True`, `True`, `False` và `30`; sau đó là `True` cho key rotation. Nếu thiếu dòng hoặc trạng thái chưa là `available`, hãy mở **RDS -> Databases -> instance đó -> Logs & events**.
+Kết quả mong đợi: sáu dòng, mỗi dòng có `available`, `True`, `True`, `False` và `30`; sau đó là `True` cho key rotation. 
+
+![Verify](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/verify-170541.png)
+
+Nếu thiếu dòng hoặc trạng thái chưa là `available`, hãy mở **RDS -> Databases -> instance đó -> Logs & events**.
 
 ```bash
 aws rds describe-db-instances \
