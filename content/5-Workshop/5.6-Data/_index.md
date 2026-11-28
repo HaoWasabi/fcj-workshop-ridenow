@@ -54,7 +54,7 @@ DB_SG_ID=sg-0fff...
 
 If any line starts with `STOP`, fix that problem and run the block again.
 
-The data variables look up resources you create on this page. Run the second block only after completing the Create the resources section, not before. Each lookup finds its resource by name.
+The data variables look up resources you create on this page. Run the second block only after completing the Create the resources section — not before. Each lookup finds its resource by name.
 
 ```bash
 RDS_KMS_KEY_ARN=$(aws kms describe-key --key-id "alias/${CLUSTER_NAME}-rds" --query KeyMetadata.Arn --output text 2>/dev/null)
@@ -242,27 +242,51 @@ The command prints the policy with your own account ID filled in. The wizard wri
 
 ### 3. Six RDS instances
 
-Create the six databases one by one. Each has its own section below with all values filled in. Each instance takes 10 to 20 minutes to create, so start the next instance while the previous one is still in the Creating state.
+Create the six databases one by one. Each instance takes 10 to 20 minutes to create, so start the next instance while the previous one is still in the Creating state.
 
 #### Procedure
 
-Create each database (*user_service, driver_service, trip_service, payment_service, matching_service, notification_service*)following this procedure:
+Create each database — *user_service, driver_service, trip_service, payment_service, matching_service, notification_service* — following this procedure:
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-121117.png)
 
 1. **Start & Engine:** Go to **RDS -> Databases -> Create database -> Standard create**. Select PostgreSQL, latest `17.x`, template Dev/Test.
 
-2. **Availability & Instance:** Select **Multi-AZ DB instance** (do not select DB cluster); instance class **Burstable classes** -> `db.t4g.micro`.
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-115714.png)
+
+2. **Availability & Instance:** Select **Multi-AZ DB instance** (do not select DB cluster); instance class **Burstable classes** -> `db.t4g.micro` (or `db.t3g.micro`).
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-115732.png)
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120153.png)
 
 3. **Storage:** Select `General Purpose SSD (gp3)`, 20 GiB, disable storage autoscaling.
 
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-144332.png)
+
 4. **Connectivity:** No EC2 attachment, network IPv4, VPC: `ridenow-prod-vpc`, DB subnet group: `ridenow-prod-db-subnet-group`, Public access: `No`. Select SG `ridenow-prod-db-sg`, remove SG `default`, Availability Zone: `No preference`.
 
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120228.png)
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-144919.png)
+
 5. **Authentication & Monitoring:** Select `Password authentication`; disable `Performance Insights` and `Enhanced monitoring`.
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-145426.png)
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120511.png)
 
 6. **Additional configuration & Create:**
     - **Set Initial database name** per the table above (e.g. `user_service`).
     - **Settings:** select Managed in AWS Secrets Manager, secret encryption key `alias/ridenow-prod-rds`.
     - **Backup & Encryption:** enable automated backups (30 days), enable encryption with KMS key `alias/ridenow-prod-rds`, leave Enable auto minor version upgrade on, disable deletion protection.
     - Click **Create database**.
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120833.png)
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120858.png)
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120550.png)
 
 > Leave everything not listed at its default. When deleting an instance later, keep **Create final snapshot** checked.
 

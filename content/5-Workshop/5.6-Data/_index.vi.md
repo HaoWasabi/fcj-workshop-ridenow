@@ -248,21 +248,46 @@ Tạo sáu database lần lượt từng cái. Mỗi database có một đề m�
 
 Lần lượt khởi tạo các database *user_service, driver_service, trip_service, payment_service, matching_service, notification_service.* theo quy trình.
 
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-121117.png)
+
 1. **Khởi tạo & Engine:** Vào RDS -> Databases -> Create database -> Standard create. Chọn PostgreSQL bản 17.x mới nhất, template Dev/Test.
 
-2. **Availability & Instance:** Chọn `Multi-AZ DB instance` (không chọn DB cluster); instance class `Burstable classes` -> `db.t4g.micro.`
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-115714.png)
+
+2. **Availability & Instance:** Chọn `Multi-AZ DB instance` (không chọn DB cluster); instance class `Burstable classes` -> `db.t4g.micro.` (hoặc `db.t3g.micro.`).
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-115732.png)
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120153.png)
 
 3. **Storage:** Chọn `General Purpose SSD (gp3)`, 20 GiB, tắt storage autoscaling.
 
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-144332.png)
+
 4. **Connectivity:** Không gắn EC2, mạng IPv4, VPC: `ridenow-prod-vpc`, DB subnet group: `ridenow-prod-db-subnet-group`, Public access: `No`. Chọn SG `ridenow-prod-db-sg`, xoá SG `default`, Availability Zone: `No preference`.
 
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120228.png)
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-144919.png)
+
 5. **Authentication & Monitoring:** Chọn `Password authentication`; tắt `Performance Insights` và `Enhanced monitoring`.
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-145426.png)
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120511.png)
+
 
 6. **Additional configuration & Tạo:**
     - **Đặt Initial database name** theo bảng trên (ví dụ: user_service).
     - **Settings:** chọn Managed in AWS Secrets Manager, secret encryption key `alias/ridenow-prod-rds`.
     - **Backup & Encryption:** bật automated backups (30 ngày), bật encryption với KMS key `alias/ridenow-prod-rds`, giữ Enable auto minor version upgrade, tắt deletion protection.
     - Nhấn **Create database.**
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120833.png)
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120858.png)
+
+![RDS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120550.png)
 
 > Với **NotificationDb:** Giữ mặc định cho mọi mục không được liệt kê. Khi xoá instance sau này, hãy giữ **Create final snapshot** được chọn.
 
