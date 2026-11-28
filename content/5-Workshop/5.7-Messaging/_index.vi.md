@@ -203,7 +203,7 @@ Chúng ta tạo DLQ trước, vì khi tạo work queue ở bước 3, mỗi queu
 
 ![DLQ](/fcj-workshop-ridenow/images/5-Workshop/5.7-Messaging/02-02-dlq-notifications.png)
 
-Mặc định SQS chỉ giữ message 4 ngày. Với DLQ, chúng ta tăng l/fcj-workshop-ridenow/images/5-Workshop/5.7-Messagingên mức tối đa 14 ngày để có đủ thời gian điều tra những message lỗi trước khi chúng bị xoá.
+Mặc định SQS chỉ giữ message 4 ngày. Với DLQ, chúng ta tăng lên mức tối đa 14 ngày để có đủ thời gian điều tra những message lỗi trước khi chúng bị xoá.
 
 > **Lưu ý:** tên queue và **Type** không đổi được sau khi tạo. Nếu gõ sai tên, bạn phải xoá queue rồi tạo lại. Hãy kiểm tra kỹ tên trước khi bấm **Create queue**.
 
