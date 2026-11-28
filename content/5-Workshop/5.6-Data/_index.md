@@ -192,19 +192,37 @@ Open the AWS console in the Asia Pacific (Singapore) `ap-southeast-1` region. Co
 ### 1. KMS key (`DbKmsKey`, `DbKmsAlias`)
 
 1. Go to **KMS -> Customer managed keys -> Create key**.
+
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-160537.png)
+
 2. Set **Key type** to `Symmetric`.
 3. Set **Key usage** to `Encrypt and decrypt`.
 4. Under **Advanced options**, set **Key material origin** to `KMS`.
 5. Under **Advanced options**, set **Regionality** to `Single-Region key`.
 6. Select **Next**.
+
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-160637.png)
+
 7. Set **Alias** to `ridenow-prod-rds`. The console will display it as `alias/ridenow-prod-rds`.
 8. Set **Description** to `ridenow-prod RDS encryption key`.
 9. Select **Next**.
+
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-163901.png)
+
 10. Under **Key administrators**, select your own IAM user or role.
 11. Leave **Allow key administrators to delete this key** checked, then select **Next**.
+
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-160908.png)
+
 12. Under **Key users**, select nothing, then select **Next**.
 13. On **Review**, select **Finish**.
+
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-165227.png)
+
 14. Open the newly created key and go to **Key policy -> Edit**.
+
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-161038.png)
+
 15. Run the command below in your shell, copy the printed JSON, and paste it over the entire policy.
 
 ```bash
@@ -224,9 +242,13 @@ cat <<EOF
 EOF
 ```
 
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-161220.png)
+
 16. Select **Save changes**.
 17. Go to the **Key rotation** tab and select **Edit**.
 18. Check **Enable automatic key rotation**, then select **Save**.
+
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-161127.png)
 
 The command prints the policy with your own account ID filled in. The wizard writes its own default policy, so this replacement matches the template.
 
@@ -240,29 +262,59 @@ The command prints the policy with your own account ID filled in. The wizard wri
 6. Under **Subnets**, check the two private subnets. Verify the CIDRs in **VPC -> Subnets** and do not select `ridenow-prod-public-*`.
 7. Select **Create**.
 
+![RDS Subnet groups](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/dbsubnet-create-form-155724.png)
+
+![RDS Subnet groups](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/dbsubnet-create-form-155829.png)
+
+![RDS Subnet groups](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/dbsubnet-create-form-155850.png)
+
 ### 3. Six RDS instances
 
-Create the six databases one by one. Each has its own section below with all values filled in. Each instance takes 10 to 20 minutes to create, so start the next instance while the previous one is still in the Creating state.
+Create the six databases one by one. Each instance takes 10 to 20 minutes to create, so start the next instance while the previous one is still in the Creating state.
 
 #### Procedure
 
-Create each database (*user_service, driver_service, trip_service, payment_service, matching_service, notification_service*)following this procedure:
+Create each database (*user_service, driver_service, trip_service, payment_service, matching_service, notification_service*) following this procedure:
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-121117.png)
 
 1. **Start & Engine:** Go to **RDS -> Databases -> Create database -> Standard create**. Select PostgreSQL, latest `17.x`, template Dev/Test.
 
-2. **Availability & Instance:** Select **Multi-AZ DB instance** (do not select DB cluster); instance class **Burstable classes** -> `db.t4g.micro`.
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-115714.png)
+
+2. **Availability & Instance:** Select **Multi-AZ DB instance** (do not select DB cluster); instance class **Burstable classes** -> `db.t4g.micro` (or `db.t3g.micro`).
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-115732.png)
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120153.png)
 
 3. **Storage:** Select `General Purpose SSD (gp3)`, 20 GiB, disable storage autoscaling.
 
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-144332.png)
+
 4. **Connectivity:** No EC2 attachment, network IPv4, VPC: `ridenow-prod-vpc`, DB subnet group: `ridenow-prod-db-subnet-group`, Public access: `No`. Select SG `ridenow-prod-db-sg`, remove SG `default`, Availability Zone: `No preference`.
 
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120228.png)
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-144919.png)
+
 5. **Authentication & Monitoring:** Select `Password authentication`; disable `Performance Insights` and `Enhanced monitoring`.
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-145426.png)
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120511.png)
 
 6. **Additional configuration & Create:**
     - **Set Initial database name** per the table above (e.g. `user_service`).
     - **Settings:** select Managed in AWS Secrets Manager, secret encryption key `alias/ridenow-prod-rds`.
     - **Backup & Encryption:** enable automated backups (30 days), enable encryption with KMS key `alias/ridenow-prod-rds`, leave Enable auto minor version upgrade on, disable deletion protection.
     - Click **Create database**.
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120833.png)
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120858.png)
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120550.png)
 
 > Leave everything not listed at its default. When deleting an instance later, keep **Create final snapshot** checked.
 
@@ -293,7 +345,11 @@ aws rds describe-db-instances \
 aws kms get-key-rotation-status --key-id "alias/${CLUSTER_NAME}-rds" --query KeyRotationEnabled --output text
 ```
 
-Expected result: six rows, each with `available`, `True`, `True`, `False`, and `30`; then `True` for key rotation. If a row is missing or the status is not `available`, open **RDS -> Databases -> that instance -> Logs & events**.
+Expected result: six rows, each with `available`, `True`, `True`, `False`, and `30`; then `True` for key rotation. 
+
+![Verify](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/verify-170541.png)
+
+If a row is missing or the status is not `available`, open **RDS -> Databases -> that instance -> Logs & events**.
 
 ```bash
 aws rds describe-db-instances \
