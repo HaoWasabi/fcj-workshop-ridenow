@@ -192,19 +192,37 @@ Mở bảng điều khiển AWS (console) ở region Asia Pacific (Singapore) `a
 ### 1. KMS key (`DbKmsKey`, `DbKmsAlias`)
 
 1. Vào **KMS -> Customer managed keys -> Create key**.
+
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-160537.png)
+
 2. Đặt **Key type** là `Symmetric`.
 3. Đặt **Key usage** là `Encrypt and decrypt`.
 4. Trong **Advanced options**, đặt **Key material origin** là `KMS`.
 5. Trong **Advanced options**, đặt **Regionality** là `Single-Region key`.
 6. Chọn **Next**.
+
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-160637.png)
+
 7. Đặt **Alias** là `ridenow-prod-rds`. Console hiển thị là `alias/ridenow-prod-rds`.
 8. Đặt **Description** là `ridenow-prod RDS encryption key`.
 9. Chọn **Next**.
+
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-163901.png)
+
 10. Trong **Key administrators**, chọn IAM user hoặc role của chính bạn.
 11. Giữ nguyên **Allow key administrators to delete this key** đã chọn, rồi chọn **Next**.
+
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-160908.png)
+
 12. Trong **Key users**, không chọn gì, rồi chọn **Next**.
 13. Ở **Review**, chọn **Finish**.
+
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-165227.png)
+
 14. Mở khoá vừa tạo và vào **Key policy -> Edit**.
+
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-161038.png)
+
 15. Chạy lệnh bên dưới trong shell, sao chép JSON được in ra và dán đè lên toàn bộ policy.
 
 ```bash
@@ -223,10 +241,13 @@ cat <<EOF
 }
 EOF
 ```
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-161220.png)
 
 16. Chọn **Save changes**.
 17. Vào tab **Key rotation** và chọn **Edit**.
 18. Chọn **Enable automatic key rotation**, rồi chọn **Save**.
+
+![KMS](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/kms-create-form-161127.png)
 
 Lệnh in ra policy với ID tài khoản của chính bạn. Wizard tự ghi một policy mặc định, nên phần thay thế này là phần khớp với template.
 
@@ -240,6 +261,12 @@ Lệnh in ra policy với ID tài khoản của chính bạn. Wizard tự ghi m�
 6. Trong **Subnets**, chọn hai private subnet. Kiểm tra CIDR trong **VPC -> Subnets** và không chọn `ridenow-prod-public-*`.
 7. Chọn **Create**.
 
+![RDS Subnet groups](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/dbsubnet-create-form-155724.png)
+
+![RDS Subnet groups](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/dbsubnet-create-form-155829.png)
+
+![RDS Subnet groups](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/dbsubnet-create-form-155850.png)
+
 ### 3. Sáu RDS instance
 
 Tạo sáu database lần lượt từng cái. Mỗi database có một đề mục riêng bên dưới với đầy đủ giá trị. Mỗi instance mất 10 đến 20 phút để tạo, nên hãy bắt đầu instance tiếp theo khi instance trước đang ở trạng thái Creating.
@@ -248,21 +275,46 @@ Tạo sáu database lần lượt từng cái. Mỗi database có một đề m�
 
 Lần lượt khởi tạo các database *user_service, driver_service, trip_service, payment_service, matching_service, notification_service.* theo quy trình.
 
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-121117.png)
+
 1. **Khởi tạo & Engine:** Vào RDS -> Databases -> Create database -> Standard create. Chọn PostgreSQL bản 17.x mới nhất, template Dev/Test.
 
-2. **Availability & Instance:** Chọn `Multi-AZ DB instance` (không chọn DB cluster); instance class `Burstable classes` -> `db.t4g.micro.`
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-115714.png)
+
+2. **Availability & Instance:** Chọn `Multi-AZ DB instance` (không chọn DB cluster); instance class `Burstable classes` -> `db.t4g.micro.` (hoặc `db.t3g.micro.`).
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-115732.png)
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120153.png)
 
 3. **Storage:** Chọn `General Purpose SSD (gp3)`, 20 GiB, tắt storage autoscaling.
 
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-144332.png)
+
 4. **Connectivity:** Không gắn EC2, mạng IPv4, VPC: `ridenow-prod-vpc`, DB subnet group: `ridenow-prod-db-subnet-group`, Public access: `No`. Chọn SG `ridenow-prod-db-sg`, xoá SG `default`, Availability Zone: `No preference`.
 
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120228.png)
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-144919.png)
+
 5. **Authentication & Monitoring:** Chọn `Password authentication`; tắt `Performance Insights` và `Enhanced monitoring`.
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-145426.png)
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120511.png)
+
 
 6. **Additional configuration & Tạo:**
     - **Đặt Initial database name** theo bảng trên (ví dụ: user_service).
     - **Settings:** chọn Managed in AWS Secrets Manager, secret encryption key `alias/ridenow-prod-rds`.
     - **Backup & Encryption:** bật automated backups (30 ngày), bật encryption với KMS key `alias/ridenow-prod-rds`, giữ Enable auto minor version upgrade, tắt deletion protection.
     - Nhấn **Create database.**
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120833.png)
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120858.png)
+
+![RDS Instance](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/rds-create-form-120550.png)
 
 > Với **NotificationDb:** Giữ mặc định cho mọi mục không được liệt kê. Khi xoá instance sau này, hãy giữ **Create final snapshot** được chọn.
 
@@ -293,7 +345,11 @@ aws rds describe-db-instances \
 aws kms get-key-rotation-status --key-id "alias/${CLUSTER_NAME}-rds" --query KeyRotationEnabled --output text
 ```
 
-Kết quả mong đợi: sáu dòng, mỗi dòng có `available`, `True`, `True`, `False` và `30`; sau đó là `True` cho key rotation. Nếu thiếu dòng hoặc trạng thái chưa là `available`, hãy mở **RDS -> Databases -> instance đó -> Logs & events**.
+Kết quả mong đợi: sáu dòng, mỗi dòng có `available`, `True`, `True`, `False` và `30`; sau đó là `True` cho key rotation. 
+
+![Verify](/fcj-workshop-ridenow/images/5-Workshop/5.6-Data/verify-170541.png)
+
+Nếu thiếu dòng hoặc trạng thái chưa là `available`, hãy mở **RDS -> Databases -> instance đó -> Logs & events**.
 
 ```bash
 aws rds describe-db-instances \
