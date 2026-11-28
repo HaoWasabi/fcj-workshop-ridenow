@@ -24,11 +24,11 @@ Trước tiên, cần lấy OIDC Issuer URL của cluster `ridenow-prod`:
 - Chọn cluster `ridenow-prod` tại region `ap-southeast-1`.
 
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-49.png)
+![Danh sách EKS Clusters](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.2-eks-cluster-list.png)
 
 - Trong tab **Overview**, tìm phần **OpenID Connect provider URL**
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-50.png)
+![OpenID Connect provider URL trong EKS](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.2-eks-oidc-url.png)
 OIDC Issuer URL có dạng:
 
 ```text
@@ -40,7 +40,7 @@ Sao chép URL này để sử dụng trong bước tiếp theo.
 
 - Truy cập **AWS Console → IAM → Identity providers → Add provider**.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-51.png)
+![Trang Identity providers trong IAM](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.2-iam-identity-providers.png)
 
 
 - Cấu hình các thông tin:
@@ -49,7 +49,7 @@ Sao chép URL này để sử dụng trong bước tiếp theo.
   - **Audience:** `sts.amazonaws.com`.
 - Chọn **Add provider** để tạo Identity Provider.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-52.png)
+![Cấu hình OIDC Identity Provider](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.2-oidc-provider-config.png)
 
 
 Sau khi tạo thành công, IAM đã có OIDC Identity Provider tương ứng với EKS Cluster `ridenow-prod`. Provider này sẽ được sử dụng trong Trust Policy của các IAM Role ở bước cấu hình IRSA.
@@ -65,7 +65,7 @@ Mỗi IAM Role sẽ đại diện cho một Service Account và được cấp q
 
 Truy cập **AWS Console → IAM → Roles → Create role**.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-48.png)
+![Trang IAM Roles](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.2-iam-roles-page.png)
 
 
 Cấu hình Trusted entity:
@@ -76,11 +76,11 @@ Cấu hình Trusted entity:
 
 Chọn **Next**.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-53.png)
+![Cấu hình Trusted entity với Web identity](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.2-role-trusted-entity.png)
 
 Tại bước **Add permissions**, chọn **Next** để tiếp tục.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-54.png)
+![Bước Add permissions cho IAM Role](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.2-role-add-permissions.png)
 
 
 Tại bước đặt tên Role, cấu hình:
@@ -104,8 +104,8 @@ Tại bước **Add permissions**, tạo một Inline Policy để cho phép Ext
 Chọn **Add permissions → Create inline policy**, chuyển sang tab **JSON** và nhập policy sau:
 
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-55.png)
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-56.png)
+![Chọn Create inline policy](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.2-create-inline-policy.png)
+![Nhập JSON cho inline policy](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.2-inline-policy-json.png)
 
 
 ```json
