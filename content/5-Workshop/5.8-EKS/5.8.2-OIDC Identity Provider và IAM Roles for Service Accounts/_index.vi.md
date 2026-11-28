@@ -181,6 +181,47 @@ Ví dụ, với Role `ridenow-prod-trip-service`, giá trị `sub` phải là:
 system:serviceaccount:ridenow:trip-service
 ```
 
+![alt text](image.png)
+
+![alt text](image-1.png)
+![alt text](image-2.png)
+![alt text](image-3.png)
+
+
+```json
+
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::492767006533:oidc-provider/oidc.eks.ap-southeast-1.amazonaws.com/id/86857EC8C51DAED22419908E015A2BA8"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.eks.ap-southeast-1.amazonaws.com/id/86857EC8C51DAED22419908E015A2BA8:aud": "sts.amazonaws.com",
+          "oidc.eks.ap-southeast-1.amazonaws.com/id/86857EC8C51DAED22419908E015A2BA8:sub": "system:serviceaccount:ridenow:trip-service"
+        }
+      }
+    }
+  ]
+}
+
+```
 Các Role còn lại cũng cần thay đổi `sub` tương ứng theo bảng Service Account ở trên.
+
+Role	sub
+alb-controller	system:serviceaccount:kube-system:aws-load-balancer-controller
+external-secrets	system:serviceaccount:external-secrets:external-secrets
+trip-service	system:serviceaccount:ridenow:trip-service
+payment-service	system:serviceaccount:ridenow:payment-service
+matching-service	system:serviceaccount:ridenow:matching-service
+notification-worker	system:serviceaccount:ridenow:notification-worker
+
+![alt text](image-4.png)
+
 
 **Lưu ý:** OIDC Provider, Audience và Service Account trong Trust Policy phải khớp chính xác. Nếu cấu hình sai, Pod sẽ không thể sử dụng IAM Role thông qua IRSA.
