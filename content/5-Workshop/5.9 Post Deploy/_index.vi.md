@@ -405,3 +405,118 @@ Kết quả mong đợi: một host name, `HTTP 200`, và log của matching và
 `503` nghĩa là load balancer không có target khỏe. Chạy `kubectl get pods -n ridenow` và chờ đến khi mọi pod `Ready`. Một pod kẹt ở `0/1` thường do sai database endpoint, secret, security group hoặc Redis endpoint. Chạy `kubectl describe pod` trên pod đó để xem lý do.
 
 
+
+## Post-deploy steps
+
+Chạy các bước này từ thư mục gốc của repository RideNow, trong shell mà bạn đã chạy các khối lệnh ở trên. Bạn cần có image cho `IMAGE_TAG` trong ECR (mục 5.5), kubeconfig, namespace `ridenow` và các database secret (mục 5.8), và đã cài Load Balancer Controller cùng External Secrets (mục 5.8).
+
+### 1. Kiểm tra các IRSA role
+
+```bash
+for ROLE in alb-controller external-secrets trip-service payment-service matching-service notification-worker; do
+  aws iam get-role --role-name "ridenow-${ENV}-${ROLE}" --query 'Role.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals' --output json \
+    | jq -r --arg r "$ROLE" 'to_entries[] | select(.key | endswith(":sub")) | "\($r)  \(.value)"'
+done
+```
+
+Kết quả mong đợi: sáu dòng, mỗi dòng gồm role và `system:serviceaccount:<namespace>:<service account>` của nó theo bảng ở bước 4.
+
+```text
+alb-controller  system:serviceaccount:kube-system:aws-load-balancer-controller
+external-secrets  system:serviceaccount:external-secrets:external-secrets
+trip-service  system:serviceaccount:ridenow:trip-service
+payment-service  system:serviceaccount:ridenow:payment-service
+matching-service  system:serviceaccount:ridenow:matching-service
+notification-worker  system:serviceaccount:ridenow:notification-worker
+```
+
+### 2. Build và push các image
+
+Nếu bạn đã push image ở mục 5.5 với cùng `IMAGE_TAG`, hãy bỏ qua bước này. Nếu chưa, chạy khối lệnh này khi Docker đang chạy:
+
+```bash
+REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+aws ecr get-login-password --region "$AWS_REGION" \
+  | docker login --username AWS --password-stdin "$REGISTRY"
+for SVC in user-service driver-service trip-service payment-service \
+           matching-service notification-worker realtime-gateway; do
+  docker buildx build --platform linux/amd64 \
+    -t "$REGISTRY/ridenow/$SVC:$IMAGE_TAG" \
+    --push "./$SVC"
+done
+```
+
+Kết quả mong đợi: `Login Succeeded`, rồi bảy lần push thành công.
+
+### 3. Đặt các biến cho workload
+
+Bảy manifest chứa các giá trị mà bạn điền bằng biến. Hãy tra cứu các giá trị database, queue và cache mà các trang trước đã tạo:
+
+```bash
+USER_DB_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier "${CLUSTER_NAME}-user-db" --query 'DBInstances[0].Endpoint.Address' --output text 2>/dev/null)
+DRIVER_DB_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier "${CLUSTER_NAME}-driver-db" --query 'DBInstances[0].Endpoint.Address' --output text 2>/dev/null)
+TRIP_DB_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier "${CLUSTER_NAME}-trip-db" --query 'DBInstances[0].Endpoint.Address' --output text 2>/dev/null)
+PAYMENT_DB_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier "${CLUSTER_NAME}-payment-db" --query 'DBInstances[0].Endpoint.Address' --output text 2>/dev/null)
+MATCHING_DB_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier "${CLUSTER_NAME}-matching-db" --query 'DBInstances[0].Endpoint.Address' --output text 2>/dev/null)
+NOTIFICATION_DB_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier "${CLUSTER_NAME}-notification-db" --query 'DBInstances[0].Endpoint.Address' --output text 2>/dev/null)
+MATCHING_QUEUE_URL=$(aws sqs get-queue-url --queue-name "${CLUSTER_NAME}-matching" --query QueueUrl --output text 2>/dev/null)
+PAYMENT_QUEUE_URL=$(aws sqs get-queue-url --queue-name "${CLUSTER_NAME}-payment" --query QueueUrl --output text 2>/dev/null)
+NOTIFICATIONS_QUEUE_URL=$(aws sqs get-queue-url --queue-name "${CLUSTER_NAME}-notifications" --query QueueUrl --output text 2>/dev/null)
+REDIS_ENDPOINT=$(aws elasticache describe-replication-groups --replication-group-id "${CLUSTER_NAME}-redis" --query 'ReplicationGroups[0].NodeGroups[0].PrimaryEndpoint.Address' --output text 2>/dev/null)
+```
+
+Các service chỉ nhận request từ một browser origin, và giá trị này không bao giờ là `*`. Đây là một Manual_Value. Bạn lấy nó từ trang frontend, vì domain CloudFront chỉ có sau khi bạn tạo nó. Hãy sao chép origin từ mục 5.10 (domain CloudFront, viết dưới dạng `https://` theo sau là domain) vào `<APP_ORIGIN>` trong khối lệnh tiếp theo. Nếu bạn chưa làm mục 5.10, hãy dùng `https://app.example.com` và áp dụng lại các manifest sau mục 5.10.
+
+```bash
+ORIGIN_URL="<APP_ORIGIN>"
+[[ "$ORIGIN_URL" == https://* ]] || echo "STOP: ORIGIN_URL must start with https://. Replace the placeholder with your origin."
+
+SUBST=()
+for P in ACCOUNT_ID:ACCOUNT_ID REGION:AWS_REGION ENV:ENV IMAGE_TAG:IMAGE_TAG APP_ORIGIN:ORIGIN_URL \
+         REDIS_ENDPOINT:REDIS_ENDPOINT USER_DB_ENDPOINT:USER_DB_ENDPOINT DRIVER_DB_ENDPOINT:DRIVER_DB_ENDPOINT \
+         TRIP_DB_ENDPOINT:TRIP_DB_ENDPOINT PAYMENT_DB_ENDPOINT:PAYMENT_DB_ENDPOINT \
+         MATCHING_DB_ENDPOINT:MATCHING_DB_ENDPOINT NOTIFICATION_DB_ENDPOINT:NOTIFICATION_DB_ENDPOINT \
+         MATCHING_QUEUE_URL:MATCHING_QUEUE_URL PAYMENT_QUEUE_URL:PAYMENT_QUEUE_URL \
+         NOTIFICATIONS_QUEUE_URL:NOTIFICATIONS_QUEUE_URL TRIP_SERVICE_ROLE_ARN:TRIP_SERVICE_ROLE_ARN \
+         PAYMENT_SERVICE_ROLE_ARN:PAYMENT_SERVICE_ROLE_ARN MATCHING_SERVICE_ROLE_ARN:MATCHING_SERVICE_ROLE_ARN \
+         NOTIFICATION_WORKER_ROLE_ARN:NOTIFICATION_WORKER_ROLE_ARN; do
+  K=${P%%:*}
+  V=${P#*:}
+  [ -n "${!V}" ] && [ "${!V}" != "None" ] || echo "STOP: $V is empty. Create that resource first, then run this block again."
+  SUBST+=(-e "s|<${K}>|${!V}|g")
+done
+```
+
+Kết quả mong đợi: không có dòng `STOP`.
+
+### 4. Triển khai bảy workload
+
+Triển khai theo thứ tự này: payment trước trip, và driver trước matching. Fargate khởi động một node cho mỗi pod, nên một lần rollout có thể mất vài phút. Các file là `23-payment-service.yaml`, `20-user-service.yaml`, `21-driver-service.yaml`, `22-trip-service.yaml`, `24-matching-service.yaml`, `25-notification-worker.yaml` và `26-realtime-gateway.yaml`, đều nằm trong `iac/k8s/`.
+
+```bash
+for F in 23-payment-service 20-user-service 21-driver-service 22-trip-service \
+         24-matching-service 25-notification-worker 26-realtime-gateway; do
+  sed "${SUBST[@]}" iac/k8s/$F.yaml | kubectl apply -f -
+  kubectl rollout status deployment/${F#*-} -n ridenow --timeout=900s
+done
+```
+
+Kết quả mong đợi: bảy dòng `deployment "<service>" successfully rolled out`. Nếu một rollout lỗi, hãy chạy `kubectl describe pod -n ridenow -l app=<service>` và `kubectl logs -n ridenow deployment/<service> --tail=50`. Timeout tới PostgreSQL hoặc Redis nghĩa là thiếu các inbound rule ở bước 1 và 2, hoặc thiếu phần pod networking ở mục 5.8.
+
+## Verify
+
+Chạy các lệnh sau trong cùng shell:
+
+```bash
+aws iam list-open-id-connect-providers --query "OpenIDConnectProviderList[?contains(Arn, '$OIDC_ID')].Arn" --output text
+aws ec2 describe-security-groups --group-ids "$DB_SG_ID" --query "SecurityGroups[0].IpPermissions[?FromPort==\`5432\`].UserIdGroupPairs[].GroupId" --output text
+aws ec2 describe-security-groups --group-ids "$REDIS_SG_ID" --query "SecurityGroups[0].IpPermissions[?FromPort==\`6379\`].UserIdGroupPairs[].GroupId" --output text
+echo "cluster SG: $EKS_CLUSTER_SG_ID"
+kubectl get pods -n ridenow
+```
+
+Kết quả mong đợi: một ARN provider kết thúc bằng `/id/` và `OIDC_ID` của bạn. Cả hai dòng security group đều chứa giá trị `cluster SG:`. Phần kiểm tra role ở Post-deploy steps in ra sáu dòng. Danh sách pod hiện 13 pod `1/1 Running`: hai pod cho mỗi service `user-service`, `driver-service`, `trip-service`, `payment-service`, `matching-service` và `realtime-gateway`, và một pod cho `notification-worker`.
+
+Trang tiếp theo là 5.10 Frontend. Hãy làm sau khi Ingress `ridenow` đã có địa chỉ ALB.
+
+
