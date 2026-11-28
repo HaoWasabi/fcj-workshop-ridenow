@@ -1,16 +1,23 @@
 ---
-title : "Rule Fargate pod và IAM Roles for Service Accounts"
+title : "Fargate Networking và IAM Roles for Service Accounts"
 date : 2024-01-01
 weight : 2
 chapter : false
 pre : " <b> 5.8.2. </b> "
 ---
 
-## Create the resources
+Trong phần này chúng ta sẽ thực hiện các phần gồm:
 
-Mở AWS console ở region Asia Pacific (Singapore) `ap-southeast-1`. Tạo các tài nguyên theo thứ tự này. Các role cần OIDC provider.
+Cấu hình Security Group để cho phép các Pod trên EKS kết nối đến PostgreSQL và Redis.
 
-### 1. Inbound rule: PostgreSQL từ các Fargate pod (`DbIngressFromFargatePods`)
+Tạo OIDC Identity Provider để thiết lập cơ chế xác thực giữa Kubernetes và AWS IAM.
+
+Tạo IAM Roles for Service Accounts (IRSA), cho phép từng Kubernetes Service Account đảm nhận IAM Role tương ứng và truy cập các dịch vụ AWS theo quyền được cấp.
+
+## Cấu hình Inbound Rules cho PostgreSQL và Redis
+Để các Fargate Pod trên EKS có thể kết nối đến PostgreSQL và Redis, cần bổ sung Inbound Rules vào Security Group tương ứng
+
+### PostgreSQL (`DbIngressFromFargatePods`)
 
 1. Vào **EC2 -> Security Groups**.
 2. Tìm `ridenow-prod-db-sg` và chọn nó.
@@ -23,7 +30,7 @@ Mở AWS console ở region Asia Pacific (Singapore) `ap-southeast-1`. Tạo cá
 
 Group lúc này có hai rule ở cổng 5432: rule từ mục 5.4 và rule này.
 
-### 2. Inbound rule: Redis từ các Fargate pod (`RedisIngressFromFargatePods`)
+### Redis (`RedisIngressFromFargatePods`)
 
 1. Vào **EC2 -> Security Groups**.
 2. Tìm `ridenow-prod-redis-sg` và chọn nó.
@@ -38,72 +45,103 @@ Group lúc này có hai rule ở cổng 5432: rule từ mục 5.4 và rule này.
 Group lúc này có hai rule ở cổng 6379.
 
 
-### 3. Thêm OIDC identity provider
+## Tạo OIDC Identity Provider cho EKS
+OIDC (OpenID Connect) Identity Provider cho phép AWS IAM xác thực danh tính của Kubernetes Service Account thông qua OpenID Connect token do EKS cấp.
 
-Đầu tiên cần lấu issuer URL của cluster:
+Đây là bước cần thiết để triển khai **IAM Roles for Service Accounts (IRSA)**, cho phép các Pod sử dụng IAM Role tương ứng để truy cập các dịch vụ AWS mà không cần lưu trữ AWS Access Key và Secret Key trực tiếp trong ứng dụng.
 
-Vào AWS Console → tìm Elastic Kubernetes Service (EKS) → chọn Clusters.
 
-Chọn cluster ridenow-prod ở region ap-southeast-1.
+Trước tiên, cần lấy OIDC Issuer URL của cluster `ridenow-prod`:
+
+- Truy cập **AWS Console → Elastic Kubernetes Service (EKS) → Clusters**.
+- Chọn cluster `ridenow-prod` tại region `ap-southeast-1`.
+
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-49.png)
 
-Trong tab Overview, tìm phần OpenID Connect provider URL (hoặc Identity).
+- Trong tab **Overview**, tìm phần **OpenID Connect provider URL**
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-50.png)
-URL sẽ có dạng:
+OIDC Issuer URL có dạng:
+
+```text
 https://oidc.eks.ap-southeast-1.amazonaws.com/id/XXXXXXXXXXXX
+```
 
-Thiết lập Provider
+Sao chép URL này để sử dụng trong bước tiếp theo.
 
-Vào **IAM -> Identity providers -> Add provider**.
+
+- Truy cập **AWS Console → IAM → Identity providers → Add provider**.
+
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-51.png)
 
-Đặt **Provider type** là `OpenID Connect`.
-Dán URL vừa in ra vào **Provider URL**.
-Đặt **Audience** là `sts.amazonaws.com`.
-Chọn **Add provider**.
+
+- Cấu hình các thông tin:
+  - **Provider type:** `OpenID Connect`.
+  - **Provider URL:** Dán OIDC Issuer URL vừa lấy từ EKS Cluster.
+  - **Audience:** `sts.amazonaws.com`.
+- Chọn **Add provider** để tạo Identity Provider.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-52.png)
 
-## 5.8.4 Tạo IAM Roles for Service Accounts
+
+Sau khi tạo thành công, IAM đã có OIDC Identity Provider tương ứng với EKS Cluster `ridenow-prod`. Provider này sẽ được sử dụng trong Trust Policy của các IAM Role ở bước cấu hình IRSA.
+
+## Tạo IAM Roles for Service Accounts (IRSA)
 
 
-Đầu tiên tạo ridenow-prod-alb-controller 
+Sau khi tạo OIDC Identity Provider, bước tiếp theo là tạo IAM Role và liên kết với các Kubernetes Service Account tương ứng.
 
-Vào **IAM -> Roles -> Create role**.
+Mỗi IAM Role sẽ đại diện cho một Service Account và được cấp quyền truy cập AWS theo đúng chức năng của ứng dụng. Trong phần này, chúng ta sẽ tạo sáu IAM Role cho AWS Load Balancer Controller, External Secrets và các service của RideNow.
+
+**Tạo IAM Role cho AWS Load Balancer Controller**
+
+Truy cập **AWS Console → IAM → Roles → Create role**.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-48.png)
 
-Đặt **Trusted entity type** là `Web identity`.
 
-Đặt **Identity provider** là OIDC provider đã tạo
+Cấu hình Trusted entity:
 
-Đặt **Audience** là `sts.amazonaws.com`.
+- **Trusted entity type:** `Web identity`.
+- **Identity provider:** Chọn OIDC Provider đã tạo ở bước trước.
+- **Audience:** `sts.amazonaws.com`.
 
 Chọn **Next**.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-53.png)
 
-Chọn **Next**.
+Tại bước **Add permissions**, chọn **Next** để tiếp tục.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-54.png)
 
-Đặt **Role name** là tên trong bảng.
 
-ridenow-prod-alb-controller
+Tại bước đặt tên Role, cấu hình:
 
-Để trống **Description**.
+- **Role name:** `ridenow-prod-alb-controller`.
+- **Description:** Để trống.
 
-Chọn **Create role**.
+Chọn **Create role** để hoàn tất.
 
-tạo ridenow-prod-external-secrets tương tự nhưng chúng ta thêm  pocily
+Lưu ý: Role này cần được gắn policy chứa các quyền cần thiết cho AWS Load Balancer Controller. Nếu policy chưa được tạo, cần bổ sung sau khi hoàn tất việc tạo Role.
+
+**Tạo IAM Role cho External Secrets**
+
+
+Thực hiện tương tự các bước tạo Role ở trên, với tên:
+
+`ridenow-prod-external-secrets`
+
+Tại bước **Add permissions**, tạo một Inline Policy để cho phép External Secrets đọc các thông tin bí mật từ AWS Secrets Manager.
+
+Chọn **Add permissions → Create inline policy**, chuyển sang tab **JSON** và nhập policy sau:
+
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-55.png)
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-56.png)
 
-```json
 
+```json
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -114,57 +152,68 @@ tạo ridenow-prod-external-secrets tương tự nhưng chúng ta thêm  pocily
         "secretsmanager:DescribeSecret"
       ],
       "Resource": [
-        "arn:aws:secretsmanager:ap-southeast-1:492767006533:secret:ridenow-prod-*",
-        "arn:aws:secretsmanager:ap-southeast-1:492767006533:secret:rds!db-*"
+        "arn:aws:secretsmanager:ap-southeast-1:<ACCOUNT_ID>:secret:ridenow-prod-*",
+        "arn:aws:secretsmanager:ap-southeast-1:<ACCOUNT_ID>:secret:rds!db-*"
       ]
     }
   ]
 }
 ```
-thay 492767006533 là Account ID của bạn 
 
-Tiếp theo Tạo role lần lượt, với các giá trị sau:
+Thay `<ACCOUNT_ID>` bằng AWS Account ID của bạn.
 
-| Role name | Service account (`namespace:name`) | Permissions |
+Đặt tên policy và lưu lại. Sau đó hoàn tất việc tạo Role với tên `ridenow-prod-external-secrets`.
+
+
+**Tạo IAM Role cho các service của RideNow**
+
+
+Tiếp theo, tạo IAM Role cho các service còn lại. Mỗi Role sẽ được gắn với một Kubernetes Service Account và một Managed Policy tương ứng.
+
+| Role name | Service Account (`namespace:name`) | Permissions |
 |---|---|---|
-| `ridenow-prod-trip-service` | `ridenow:trip-service` | managed policy `ridenow-prod-trip-service-messaging` |
-| `ridenow-prod-payment-service` | `ridenow:payment-service` | managed policy `ridenow-prod-payment-service-messaging` |
-| `ridenow-prod-matching-service` | `ridenow:matching-service` | managed policy `ridenow-prod-matching-service-messaging` |
-| `ridenow-prod-notification-worker` | `ridenow:notification-worker` | managed policy `ridenow-prod-notification-worker-messaging` |
+| `ridenow-prod-trip-service` | `ridenow:trip-service` | `ridenow-prod-trip-service-messaging` |
+| `ridenow-prod-payment-service` | `ridenow:payment-service` | `ridenow-prod-payment-service-messaging` |
+| `ridenow-prod-matching-service` | `ridenow:matching-service` | `ridenow-prod-matching-service-messaging` |
+| `ridenow-prod-notification-worker` | `ridenow:notification-worker` | `ridenow-prod-notification-worker-messaging` |
 
+Lặp lại các bước sau cho từng Role trong bảng:
 
-Lặp lại danh sách này cho từng dòng của bảng.
+- Truy cập **IAM → Roles → Create role**.
+- Chọn **Trusted entity type:** `Web identity`.
+- Chọn OIDC Provider đã tạo ở bước trước.
+- Đặt **Audience:** `sts.amazonaws.com`.
+- Chọn **Next**.
+- Tại mục **Add permissions**, tìm và chọn Managed Policy tương ứng trong bảng.
+- Chọn **Next**.
+- Đặt **Role name** theo bảng, để trống **Description**.
+- Chọn **Create role**.
 
-Vào **IAM -> Roles -> Create role**.
+Sau khi hoàn tất, chúng ta sẽ có tổng cộng sáu IAM Role tương ứng với sáu Service Account của hệ thống.
 
-Đặt **Trusted entity type** là `Web identity`.
+## Cập nhật Trust Policy cho các IAM Role
 
-Đặt **Identity provider** là OIDC provider ở bước 3 (mục kết thúc bằng `OIDC_ID` của bạn).
+Sau khi tạo Role, cần cập nhật Trust Policy để giới hạn Service Account nào được phép sử dụng IAM Role tương ứng thông qua OIDC.
 
-Đặt **Audience** là `sts.amazonaws.com`.
+Thực hiện lần lượt cho cả sáu Role:
 
-Chọn **Next**.
+- Truy cập **IAM → Roles** và tìm Role cần cập nhật.
+- Mở tab **Trust relationships**.
+- Chọn **Edit trust policy**.
+- Thay thế nội dung hiện tại bằng Trust Policy tương ứng với Role.
+- Chọn **Update policy** để lưu.
 
-Ở **Add permissions** tìm policy trong bảng và tick nó.
+Trong Trust Policy, cần cấu hình chính xác hai điều kiện:
 
-Chọn **Next**.
+- `aud`: Audience phải là `sts.amazonaws.com`.
+- `sub`: Phải khớp với Kubernetes Service Account theo định dạng `system:serviceaccount:<namespace>:<service-account-name>`.
 
-Đặt **Role name** là tên trong bảng.
+Ví dụ, với Role `ridenow-prod-trip-service`, giá trị `sub` phải là:
 
-Để trống **Description**.
+```text
+system:serviceaccount:ridenow:trip-service
+```
 
-Chọn **Create role**.
+Các Role còn lại cũng cần thay đổi `sub` tương ứng theo bảng Service Account ở trên.
 
-#### 4.2 Thay trust policy
-
-Lặp lại danh sách này cho từng role trong sáu role.
-
-Trong danh sách role, tìm tên role và mở nó.
-
-Mở tab **Trust relationships** và chọn **Edit trust policy**.
-
-Xóa toàn bộ nội dung.
-
-Dán trust policy mà khối lệnh ở trên đã in cho role này.
-
-Chọn **Update policy**.
+**Lưu ý:** OIDC Provider, Audience và Service Account trong Trust Policy phải khớp chính xác. Nếu cấu hình sai, Pod sẽ không thể sử dụng IAM Role thông qua IRSA.
