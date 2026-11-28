@@ -14,11 +14,11 @@ AWS Key Management Service (AWS KMS) là dịch vụ quản lý khóa mã hóa c
 
 Truy cập vào Key Management Service trên AWS Console.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-1.png)
+![Truy cập Key Management Service trên AWS Console](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-kms-console.png)
 
 Đây là giao diện quản lý các KMS Keys trong AWS.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-2.png)
+![Giao diện quản lý KMS Keys](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-kms-keys-list.png)
 
 CHúng ta sẽ tạo một KMS Key mới với các thông số sau:
 
@@ -30,17 +30,17 @@ CHúng ta sẽ tạo một KMS Key mới với các thông số sau:
 | Description | `ridenow-prod EKS secrets encryption key` |
 
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-3.png)
+![Chọn Key type là Symmetric](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-kms-key-type.png)
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-4.png)
+![Chọn Key usage là Encrypt and decrypt](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-kms-key-usage.png)
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-10.png)
+![Nhập Alias cho KMS key](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-kms-alias.png)
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-6.png)
+![Cấu hình Key administrators](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-kms-key-admins.png)
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-7.png)
+![Cấu hình Key usage permissions](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-kms-key-users.png)
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-11.png)
+![Review và tạo KMS key](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-kms-review.png)
 
 Sau khi tạo Key, chúng ta cần cấu hình Key Policy để xác định những IAM Principal nào được phép sử dụng và quản lý KMS Key.
 
@@ -66,11 +66,11 @@ Sử dụng policy JSON sau:
 Policy này cấp quyền quản lý KMS Key ở cấp tài khoản. Các IAM User và Role vẫn cần có IAM permissions phù hợp để thực hiện các thao tác tương ứng.
 
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-12.png)
+![Chỉnh sửa Key Policy](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-kms-edit-policy.png)
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-13.png)
+![Cập nhật Key Policy JSON](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-kms-policy-json.png)
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-14.png)
+![Lưu thay đổi Key Policy](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-kms-save-policy.png)
 
 Tiếp theo, bật tính năng Automatic Key Rotation cho KMS Key.
 
@@ -80,13 +80,13 @@ Việc xoay vòng khóa không làm mất khả năng giải mã dữ liệu đ�
 
 Thực hiện bật Automatic Key Rotation trong phần cấu hình của KMS Key.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-15.png)
+![Truy cập tab Key rotation](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-kms-rotation-tab.png)
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-16.png)
+![Chỉnh sửa cấu hình Key rotation](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-kms-edit-rotation.png)
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-17.png)
+![Bật Automatic key rotation](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-kms-enable-rotation.png)
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-18.png)
+![Xác nhận Key rotation đã được bật](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-kms-rotation-enabled.png)
 
 ## 5.8.2 Tạo EKS Cluster
 
@@ -96,7 +96,7 @@ Trong phần này, chúng ta sẽ tạo EKS Cluster có tên ridenow-prod, sử 
 
 Truy cập vào Amazon Elastic Kubernetes Service (EKS) trên AWS Console và chọn Create Cluster.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-28.png)
+![Truy cập Amazon EKS Console](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-eks-console.png)
 
 
 Thiết lập các thông số sau:
@@ -115,7 +115,7 @@ Tiếp theo, cấu hình thông tin Cluster:
 
 **Cluster IAM role** là IAM Role cho phép EKS Control Plane gọi các AWS API cần thiết để quản lý tài nguyên và vận hành Cluster.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-29.png)
+![Cấu hình tên Cluster và IAM role](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-eks-name-role.png)
 
 Thiết lập các thông số:
 
@@ -124,7 +124,7 @@ Thiết lập các thông số:
 | Kubernetes version | `1.34` |
 | Upgrade policy | `Standard` |
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-30.png)
+![Chọn Kubernetes version và Upgrade policy](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-eks-k8s-version.png)
 
 
 Tiếp theo, cấu hình quyền truy cập và mã hóa:
@@ -136,7 +136,7 @@ Tiếp theo, cấu hình quyền truy cập và mã hóa:
 
 Sau khi hoàn tất, chọn **Next**.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-31.png)
+![Cấu hình Authentication và Encryption với KMS](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-eks-auth-encryption.png)
 
 
 Networking xác định cách EKS Cluster kết nối với VPC, các Subnets và những nguồn có thể truy cập Kubernetes API Server.
@@ -155,7 +155,7 @@ Cấu hình các thông số sau:
 - `ridenow-prod-private-1`
 - `ridenow-prod-private-2`
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-59.png)
+![Chọn VPC, Subnets và Security groups](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-eks-networking.png)
 
 Tiếp theo, cấu hình **Cluster endpoint access**:
 
@@ -168,7 +168,7 @@ Mở rộng **Advanced settings** và giữ **Public access source allowlist** �
 
 Sau khi hoàn tất, chọn **Next**.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-33.png)
+![Cấu hình Cluster endpoint access](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-eks-endpoint-access.png)
 
 
 
@@ -180,7 +180,7 @@ Trong môi trường Lab này, chúng ta tắt các loại log để tránh phá
 
 Sau đó, chọn **Next**.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-34.png)
+![Tắt Control Plane Logging](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-eks-logging.png)
 
 
 EKS Add-ons là các thành phần mở rộng giúp Kubernetes Cluster thực hiện những chức năng cơ bản như quản lý DNS, networking và network proxy.
@@ -201,27 +201,27 @@ Trong phần **Select add-ons**, giữ chọn các Add-ons sau:
 
 Sau khi hoàn tất, chọn **Next**.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-35.png)
+![Chọn các EKS Add-ons](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-eks-addons.png)
 
 
 Ở phần **Configure selected add-ons settings**, giữ nguyên các cấu hình mặc định cho cả ba Add-ons.
 
 Chọn **Next** để tiếp tục.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-36.png)
+![Cấu hình settings cho Add-ons](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-eks-addons-settings.png)
 
 Kiểm tra lại toàn bộ cấu hình đã thiết lập. Nếu các thông số chính xác, chọn **Create** để bắt đầu khởi tạo EKS Cluster.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-37.png)
+![Review và Create EKS Cluster](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-eks-review-create.png)
 
 AWS sẽ tiến hành tạo các tài nguyên cần thiết cho Kubernetes Control Plane và cấu hình các thành phần liên quan.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-39.png)
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-40.png)
+![EKS Cluster đang được tạo](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-eks-creating.png)
+![Quá trình khởi tạo EKS Cluster](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-eks-creating-progress.png)
 
 Quá trình khởi tạo thường mất khoảng 10–15 phút. Chờ cho đến khi **Status** chuyển sang `Active`.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-41.png)
+![EKS Cluster ở trạng thái Active](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-eks-active.png)
 
 
 Sau khi Cluster có trạng thái `Active`, chúng ta đã hoàn thành việc khởi tạo EKS Control Plane.
@@ -249,11 +249,11 @@ Truy cập vào:
 
 **EKS → Clusters → `ridenow-prod` → Compute → Fargate profiles → Add Fargate profile**.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-42.png)
+![Truy cập tab Compute trong EKS Cluster](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-eks-compute-tab.png)
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-43.png)
+![Chọn Add Fargate profile](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-fargate-add.png)
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-44.png)
+![Trang tạo Fargate profile](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-fargate-create-page.png)
 
 
 Thiết lập các thông số sau:
@@ -267,7 +267,7 @@ Thiết lập các thông số sau:
 
 Sau khi hoàn tất, chọn **Next**.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-45.png)
+![Cấu hình Fargate profile system](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-fargate-system-config.png)
 
 
 Tiếp theo, cấu hình **Pod selectors**.
@@ -282,18 +282,18 @@ Chúng ta sẽ thêm hai Selectors:
 Chọn **Add selector** để thêm Namespace `external-secrets`, sau đó chọn **Next**.
 
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-46.png)
+![Cấu hình Pod selectors cho system profile](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-fargate-system-selectors.png)
 
 Chọn **Create** để tạo Fargate Profile.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-47.png)
+![Review và Create Fargate profile](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-fargate-system-review.png)
 
 
 Chờ khoảng 1–2 phút cho đến khi **Status** chuyển sang `Active`.
 
 Chỉ tiếp tục tạo Fargate Profile tiếp theo sau khi Profile hiện tại đã ở trạng thái `Active`.
 
-![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-60.png)
+![Fargate profile ở trạng thái Active](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/5.8.1-fargate-system-active.png)
 
 **Tạo Fargate Profile `ridenow-prod-app`**
 
