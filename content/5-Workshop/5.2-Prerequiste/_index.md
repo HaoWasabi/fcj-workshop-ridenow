@@ -42,13 +42,13 @@ The tools used include:
 
 AWS CLI is used to interact with AWS, Docker is used to package applications, while kubectl and Helm are used to manage Kubernetes components.
 
-![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5.2-deployment-tools-overview.png)
+![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-deployment-tools-overview.png)
 
 Preparing all these tools helps ensure a consistent deployment process and minimizes errors caused by missing dependencies.
 
 **Verify the installed tools using the following commands:**
 
-![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5.2-check-tool-versions.png)
+![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-check-tool-versions.png)
 
 ---
 
@@ -62,11 +62,11 @@ In this workshop, I use Ubuntu through WSL to execute AWS CLI commands and perfo
 
 To install Ubuntu, I open PowerShell with Administrator privileges and execute the following command:
 
-![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5.2-install-ubuntu-wsl.png)
+![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-install-ubuntu-wsl.png)
 
 After installation, I open the Ubuntu Terminal and verify the environment using the following command:
 
-![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5.2-verify-linux-bash-environment.png)
+![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-verify-linux-bash-environment.png)
 
 If the output displays Linux system information, the Bash environment is working properly.
 
@@ -80,9 +80,9 @@ The purpose of this step is to confirm that AWS CLI is using the correct AWS acc
 
 I run the following command:
 
-![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5.2-aws-sts-get-caller-identity-command.png)
+![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-aws-sts-get-caller-identity-command.png)
 
-![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5.2-aws-sts-caller-identity-result.png)
+![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-aws-sts-caller-identity-result.png)
 
 This command uses AWS Security Token Service (STS) to retrieve information about the current identity.
 
@@ -104,17 +104,17 @@ After successfully verifying access permissions, I configure the AWS Region for 
 
 In this workshop, I use the following AWS Region:
 
-![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5.2-aws-region-singapore.png)
+![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-aws-region-singapore.png)
 
 This is the AWS Singapore Region.
 
 I configure the default Region using the following command:
 
-![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5.2-configure-default-aws-region.png)
+![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-configure-default-aws-region.png)
 
 Then, I verify the configuration:
 
-![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5.2-verify-aws-region.png)
+![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-verify-aws-region.png)
 
 In addition, the RideNow system uses the `prod` environment, which represents the production environment.
 
@@ -128,15 +128,15 @@ Instead of manually entering information such as the AWS account ID, Region, or 
 
 First, I retrieve the AWS account ID:
 
-![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5.2-set-aws-account-id-variable.png)
+![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-set-aws-account-id-variable.png)
 
 Next, I retrieve the configured AWS Region:
 
-![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5.2-set-aws-region-variable.png)
+![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-set-aws-region-variable.png)
 
 Then, I define the remaining variables:
 
-![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5.2-set-deployment-environment-variables.png)
+![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-set-deployment-environment-variables.png)
 
 The meaning of each variable is described below:
 
@@ -159,7 +159,7 @@ Using configuration variables makes deployment commands shorter, easier to manag
 
 After defining the variables, I verify their values using `echo` commands.
 
-![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5.2-verify-deployment-variables.png)
+![RideNow preparation steps illustration](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-verify-deployment-variables.png)
 
 The `ACCOUNT_ID` variable displays my actual AWS account ID.
 

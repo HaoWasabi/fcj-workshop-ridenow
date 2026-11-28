@@ -26,7 +26,7 @@ Trong hệ thống RideNow, VPC đóng vai trò là nền tảng mạng để tr
 Để bắt đầu, em đăng nhập vào AWS Management Console và chọn Region **Asia Pacific (Singapore)**, có mã là `ap-southeast-1`.
 Sau đó, em tìm kiếm dịch vụ VPC, truy cập vào mục **Your VPCs** và chọn **Create VPC** để tiến hành tạo mạng riêng.
 
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-create-vpc.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-vpc.png)
 Trong đó, dải CIDR `10.30.0.0/16` xác định phạm vi địa chỉ IP của VPC. Từ dải địa chỉ này, em có thể tiếp tục phân chia thành các mạng con, hay còn gọi là Subnet, để phục vụ các thành phần khác nhau của hệ thống.
 
 ### 2.3. Cấu hình DNS cho VPC
@@ -39,7 +39,7 @@ Tính năng này cho phép các tài nguyên trong VPC sử dụng dịch vụ p
 **Thứ hai là DNS Hostnames.**
 Tính năng này hỗ trợ việc cấp tên DNS cho những tài nguyên đủ điều kiện trong VPC.
 Việc bật hai tính năng DNS giúp các thành phần trong hệ thống thuận tiện hơn khi cần giao tiếp thông qua tên miền, thay vì phải sử dụng trực tiếp địa chỉ IP.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-enable-vpc-dns-settings.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-enable-vpc-dns-settings.png)
 
 ### 2.4. Kiểm tra VPC bằng AWS CLI trên Ubuntu WSL
 
@@ -47,24 +47,24 @@ Ngoài việc kiểm tra trực tiếp trên AWS Console, em còn sử dụng AW
 Cách kiểm tra này giúp em xác nhận cấu hình tài nguyên trực tiếp từ AWS API, thay vì chỉ dựa vào giao diện quản lý.
 **Bước đầu tiên, em lấy VPC ID theo tên đã cấu hình.**
 Em sử dụng lệnh:
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-cli-find-vpc-id.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cli-find-vpc-id.png)
 
 Trong đó, `describe-vpcs` được sử dụng để truy vấn thông tin VPC, còn `--filters` giúp tìm đúng VPC thông qua tag Name.
 Sau đó, em chạy:
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-cli-display-vpc-id.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cli-display-vpc-id.png)
 Lệnh này hiển thị VPC ID mà AWS đã tự động cấp cho tài nguyên.
 
 **Tiếp theo, em kiểm tra dải địa chỉ CIDR và trạng thái của VPC.**
 Em thực hiện lệnh:
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-cli-verify-vpc-cidr-and-state.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cli-verify-vpc-cidr-and-state.png)
 Kết quả này cho thấy VPC có dải địa chỉ CIDR đúng như thiết kế và đang ở trạng thái Available.
 
 **Cuối cùng, em kiểm tra hai tính năng DNS.**
 Để kiểm tra DNS Resolution, em sử dụng lệnh:
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-cli-verify-vpc-dns-resolution.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cli-verify-vpc-dns-resolution.png)
 
 Tiếp theo, để kiểm tra DNS Hostnames, em sử dụng lệnh:
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-cli-verify-vpc-dns-hostnames.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cli-verify-vpc-dns-hostnames.png)
 
 Với cả hai lệnh, em cần xác nhận thuộc tính `Value` trả về là `true`.
 Điều này chứng tỏ hai tính năng DNS đã được bật thành công trên VPC.
@@ -92,7 +92,7 @@ Trong hệ thống RideNow, Internet Gateway được sử dụng để hỗ tr�
 Đầu tiên, em đăng nhập vào AWS Management Console và chọn Region **Asia Pacific (Singapore)**, có mã là `ap-southeast-1`.
 
 Tại giao diện tạo Internet Gateway, em nhập tên tài nguyên là `ridenow-prod-igw`.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-create-internet-gateway.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-internet-gateway.png)
 
 Trong đó, `ridenow` là tên hệ thống, `prod` đại diện cho môi trường production và `igw` là viết tắt của Internet Gateway.
 Sau khi kiểm tra thông tin, em nhấn **Create internet gateway** để AWS tiến hành tạo tài nguyên.
@@ -105,7 +105,7 @@ Vì vậy, em tiếp tục thực hiện thao tác liên kết Internet Gateway 
 Tại phần Available VPCs, em chọn VPC có tên `ridenow-prod-vpc` và nhấn **Attach internet gateway**.
 Sau khi thao tác thành công, trạng thái Internet Gateway chuyển từ **Detached** sang **Attached**.
 Điều này cho biết Internet Gateway đã được gắn vào đúng mạng VPC của hệ thống RideNow.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-attach-internet-gateway-to-vpc.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-attach-internet-gateway-to-vpc.png)
 
 ### 3.4. Kết quả và chuyển sang bước tiếp theo
 
@@ -136,19 +136,19 @@ Việc phân chia này giúp hệ thống có cấu trúc mạng rõ ràng hơn,
 
 Tại phần VPC ID, em chọn VPC `ridenow-prod-vpc` đã tạo ở bước trước.
 Tiếp theo, em lần lượt cấu hình bốn Subnet như sau:
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-create-subnets-step-1.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-subnets-step-1.png)
 
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-create-subnets-step-2.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-subnets-step-2.png)
 
 
 
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-create-subnets-step-3.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-subnets-step-3.png)
 
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-create-subnets-step-4.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-subnets-step-4.png)
 
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-create-subnets-step-5.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-subnets-step-5.png)
 
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-create-subnets-step-6.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-subnets-step-6.png)
 
 | Subnet                   | Availability Zone | IPv4 CIDR       |
 | ------------------------ | ----------------- | --------------- |
@@ -169,13 +169,13 @@ Sau khi tạo các Subnet, em tiếp tục cấu hình Kubernetes Tags.
 Mục đích của việc thêm các tag này là giúp AWS Load Balancer Controller nhận diện các Subnet phù hợp khi triển khai Load Balancer trên EKS ở những bước tiếp theo.
 Đầu tiên, em truy cập **VPC → Subnets**, chọn từng Subnet và mở tab **Tags** để kiểm tra hoặc bổ sung tag.
 Đối với hai Public Subnet, em sử dụng tag:
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-public-subnet-kubernetes-tags.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-public-subnet-kubernetes-tags.png)
 
 Tag này đánh dấu các Subnet phù hợp để triển khai Load Balancer công khai, hay còn gọi là Internet-facing Load Balancer.
 
 Đối với hai Private Subnet, em sử dụng tag:
 
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-private-subnet-kubernetes-tags.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-private-subnet-kubernetes-tags.png)
 Tag này đánh dấu các Subnet phù hợp để triển khai Load Balancer nội bộ, hay còn gọi là Internal Load Balancer.
 
 ### 4.4. Cấu hình tự động cấp phát Public IP
@@ -217,7 +217,7 @@ Còn hai Private Route Table sẽ được cấu hình riêng cho từng Private
 ### 5.2. Các bước tạo Public Route Table trên AWS Console
 
 Đầu tiên, em đăng nhập vào AWS Management Console và chọn Region **Asia Pacific (Singapore)**, có mã là `ap-southeast-1`.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-create-public-route-table.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-public-route-table.png)
 Tại giao diện tạo Route Table, em thực hiện các cấu hình như sau:
 - **Name:** `ridenow-prod-public-rt`.
 - **VPC:** Chọn `ridenow-prod-vpc`.
@@ -229,13 +229,13 @@ Destination: 10.30.0.0/16
 Target: local
 ```
 Trong đó, `10.30.0.0/16` là dải địa chỉ mạng của VPC RideNow, còn `local` cho phép các tài nguyên trong VPC định tuyến lưu lượng đến nhau.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-public-route-table-local-route.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-public-route-table-local-route.png)
 Tuyến đường này được AWS tự động tạo khi Route Table được khởi tạo.
 
 ### 5.3. Cấu hình tuyến đường kết nối Internet
 
 Sau khi tạo Public Route Table, em tiếp tục cấu hình tuyến đường để các Public Subnet có thể sử dụng Internet Gateway.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-public-route-table-internet-gateway-route.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-public-route-table-internet-gateway-route.png)
 Trong cấu hình này, `0.0.0.0/0` đại diện cho tuyến mặc định của toàn bộ địa chỉ IPv4.
 Điều này có nghĩa là khi một gói tin được gửi đến địa chỉ không khớp với tuyến đường cụ thể hơn, Route Table sẽ chuyển lưu lượng đó đến Internet Gateway.
 Còn Internet Gateway `ridenow-prod-igw` là thành phần đã được tạo và gắn vào VPC ở bước trước, đóng vai trò kết nối giữa VPC và Internet.
@@ -254,7 +254,7 @@ Sau khi cấu hình tuyến Internet, em tiếp tục liên kết Public Route T
 Tại phần Explicit subnet associations, em liên kết cả hai Public Subnet với cùng một Public Route Table.
 - `ridenow-prod-public-1`.
 - `ridenow-prod-public-2`.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-public-route-table-subnet-associations.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-public-route-table-subnet-associations.png)
 
 Khi các tài nguyên trong hai Public Subnet cần gửi lưu lượng ra Internet, Route Table sẽ cung cấp tuyến đường mặc định đến Internet Gateway.
 Tuy nhiên, để kết nối Internet thực tế, tài nguyên vẫn cần có địa chỉ IP công khai phù hợp và các cấu hình Security Group, Network ACL cho phép lưu lượng.
@@ -290,12 +290,12 @@ Mỗi NAT Gateway được đặt trong một Public Subnet thuộc một Availa
 
 Đầu tiên, em tiến hành cấp phát hai Elastic IP để sử dụng cho hai NAT Gateway.
 Elastic IP là một địa chỉ IPv4 công khai tĩnh được AWS cấp phát, cho phép NAT Gateway sử dụng địa chỉ IP công khai ổn định khi kết nối ra Internet.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-allocate-nat-elastic-ip-1.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-allocate-nat-elastic-ip-1.png)
 
 Sau khi nhập đầy đủ thông tin, em nhấn **Allocate** để AWS cấp phát Elastic IP thứ nhất.
 
 Tiếp theo, em thực hiện tương tự để cấp phát Elastic IP thứ hai, nhưng thay đổi Name tag thành `ridenow-prod-nat-eip-2`.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-allocate-nat-elastic-ip-2.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-allocate-nat-elastic-ip-2.png)
 
 Sau khi hoàn thành, em quay lại danh sách Elastic IPs để kiểm tra.
 Tại đây, em xác nhận đã có hai Elastic IP được cấp phát, mỗi địa chỉ có một Allocation ID riêng do AWS tạo ra.
@@ -304,7 +304,7 @@ Hai Elastic IP này sẽ lần lượt được gắn vào NAT Gateway thứ nh�
 ### 6.3. Tạo NAT Gateway thứ nhất
 
 Sau khi cấp phát hai Elastic IP, em tiếp tục tạo NAT Gateway thứ nhất.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-create-nat-gateway-1.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-nat-gateway-1.png)
 
 Trong đó, NAT Gateway thứ nhất được đặt tại Public Subnet 1, thuộc Availability Zone `ap-southeast-1a`.
 Em chọn Connectivity type là Public vì NAT Gateway này cần có khả năng kết nối ra Internet thông qua Internet Gateway của VPC.
@@ -313,7 +313,7 @@ Em chọn Connectivity type là Public vì NAT Gateway này cần có khả năn
 ### 6.4. Tạo NAT Gateway thứ hai
 
 Tiếp theo, em tạo NAT Gateway thứ hai để phục vụ cho Private Subnet nằm ở Availability Zone còn lại.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-create-nat-gateway-2.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-nat-gateway-2.png)
 
 Khác với NAT Gateway thứ nhất, NAT Gateway thứ hai được đặt trong Public Subnet 2, thuộc Availability Zone `ap-southeast-1b`.
 Mỗi NAT Gateway sử dụng một Elastic IP riêng và được triển khai trên một Availability Zone khác nhau.
@@ -323,26 +323,26 @@ Cách thiết kế này giúp hệ thống hạn chế sự phụ thuộc vào m
 ### 6.5. Tạo Private Route Table thứ nhất
 
 Sau khi hai NAT Gateway đã sẵn sàng, em tiếp tục cấu hình Route Table để các Private Subnet có thể sử dụng NAT Gateway khi cần kết nối ra Internet.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-create-private-route-table-1.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-private-route-table-1.png)
 
 
 Em cấu hình tuyến đường:
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-private-route-table-1-nat-default-route.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-private-route-table-1-nat-default-route.png)
 Trong đó, `0.0.0.0/0` là tuyến mặc định dành cho những địa chỉ IPv4 không khớp với tuyến cụ thể hơn.
 Còn NAT Gateway `ridenow-prod-nat-1` là thành phần tiếp nhận lưu lượng Internet được gửi từ Private Subnet 1.
 
 Cuối cùng, em liên kết Route Table này với `ridenow-prod-private-1`.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-private-route-table-1-subnet-association.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-private-route-table-1-subnet-association.png)
 
 Như vậy, Private Subnet 1 đã có đường định tuyến mặc định thông qua NAT Gateway 1.
 
 ### 6.6. Tạo Private Route Table thứ hai
 
 Tiếp theo, em tiến hành tạo Private Route Table thứ hai cho Private Subnet 2.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-create-private-route-table-2.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-private-route-table-2.png)
 
 Em tiếp tục vào liên kết với `ridenow-prod-private-2`.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-private-route-table-2-subnet-association.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-private-route-table-2-subnet-association.png)
 
 Như vậy, hai Private Subnet đã được cấu hình sử dụng hai NAT Gateway riêng biệt.
 Cụ thể, Private Subnet 1 sử dụng NAT Gateway 1 ở Availability Zone 1a, còn Private Subnet 2 sử dụng NAT Gateway 2 ở Availability Zone 1b.
@@ -379,7 +379,7 @@ Mục đích là hạn chế những kết nối không cần thiết và chỉ 
 Sau khi tạo Security Group thành công, em sẽ bổ sung một rule riêng để cho phép các tài nguyên thuộc cùng Security Group giao tiếp với nhau.
 
 Outbound Rules quy định những kết nối mà tài nguyên sử dụng Security Group được phép gửi ra bên ngoài.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-cluster-sg-outbound-rules.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cluster-sg-outbound-rules.png)
 
 Với cấu hình này, các tài nguyên sử dụng Security Group được phép khởi tạo lưu lượng IPv4 đi ra ngoài trên tất cả các giao thức và cổng.
 Điều này hỗ trợ ứng dụng kết nối đến những dịch vụ cần thiết, chẳng hạn như cơ sở dữ liệu RDS hoặc các dịch vụ bên ngoài thông qua NAT Gateway.
@@ -387,14 +387,14 @@ Tuy nhiên, khả năng kết nối thực tế còn phụ thuộc vào Route Ta
 Sau khi hoàn tất, em giữ nguyên cấu hình Outbound Rule để sử dụng cho Cluster Security Group.
 
 Sau khi cấu hình Inbound và Outbound Rules, em tiếp tục thêm tag để phục vụ việc quản lý và truy vấn tài nguyên.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-cluster-sg-name-tag.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cluster-sg-name-tag.png)
 
 Tag Name giúp em nhận diện Security Group trên AWS Console, đồng thời có thể sử dụng để truy vấn tài nguyên bằng AWS CLI.
 
 ### 7.3. Thêm Inbound Rule tự tham chiếu
 
 Sau khi tạo Security Group thành công, em tiếp tục bổ sung một Inbound Rule tự tham chiếu, hay còn gọi là **Self-referencing Rule**.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-cluster-sg-self-referencing-inbound-rule.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cluster-sg-self-referencing-inbound-rule.png)
 
 Điểm quan trọng là ở phần Source, em không chọn `0.0.0.0/0`, mà chọn chính Security Group `ridenow-prod-cluster-sg`.
 Điều này được gọi là rule tự tham chiếu vì Security Group sử dụng chính nó làm nguồn được phép truy cập.
@@ -439,7 +439,7 @@ Thay vì mở cổng cơ sở dữ liệu cho toàn bộ Internet, em sử dụn
 Sau khi nhập các thông tin cơ bản, em tiếp tục cấu hình Inbound Rule.
 Inbound Rule là quy tắc xác định những kết nối nào được phép đi vào tài nguyên sử dụng Security Group.
 Đối với Database Security Group, em chỉ cho phép kết nối đến cổng PostgreSQL từ Cluster Security Group đã tạo trước đó.
-![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5.4-database-sg-postgresql-inbound-rule.png)
+![Ảnh minh họa cấu hình mạng RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-database-sg-postgresql-inbound-rule.png)
 
 Trong đó, khi chọn Type là PostgreSQL, AWS sẽ tự động thiết lập giao thức TCP và cổng 5432.
 Điểm quan trọng nhất nằm ở phần Source.

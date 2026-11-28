@@ -31,11 +31,11 @@ Các công cụ được sử dụng bao gồm:
 |jq|Đọc và xử lý dữ liệu JSON|
 |Bash|Thực thi các câu lệnh triển khai|
 Trong đó, AWS CLI được sử dụng để tương tác với AWS; Docker phục vụ quá trình đóng gói ứng dụng; còn kubectl và Helm được sử dụng để quản lý các thành phần Kubernetes.
-![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5.2-deployment-tools-overview.png)
+![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-deployment-tools-overview.png)
 Việc chuẩn bị đầy đủ những công cụ này giúp quá trình triển khai diễn ra thống nhất và hạn chế các lỗi phát sinh do thiếu công cụ.
 
 **Kiểm tra các công cụ bằng lệnh:**
-![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5.2-check-tool-versions.png)
+![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-check-tool-versions.png)
 
 ---
 ## 5.2.3. Thiết lập môi trường Bash trên Windows
@@ -43,9 +43,9 @@ Do các câu lệnh trong workshop sử dụng cú pháp Bash, trong khi máy t�
 WSL cho phép chạy môi trường Linux trực tiếp trên Windows mà không cần cài đặt hệ điều hành Linux riêng biệt.
 Trong workshop này, em sử dụng Ubuntu thông qua WSL để thực hiện các lệnh AWS CLI và các thao tác triển khai.
 Để cài đặt Ubuntu, em mở PowerShell với quyền Administrator và thực hiện:
-![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5.2-install-ubuntu-wsl.png)
+![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-install-ubuntu-wsl.png)
 Sau khi cài đặt, em mở Ubuntu Terminal và kiểm tra môi trường bằng lệnh:
-![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5.2-verify-linux-bash-environment.png)
+![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-verify-linux-bash-environment.png)
 Nếu kết quả hiển thị thông tin Linux thì môi trường Bash đã hoạt động.
 
 ---
@@ -53,9 +53,9 @@ Nếu kết quả hiển thị thông tin Linux thì môi trường Bash đã ho
 Sau khi chuẩn bị môi trường làm việc, em tiến hành kiểm tra thông tin xác thực AWS.
 Mục đích của bước này là xác nhận AWS CLI đang sử dụng đúng tài khoản và danh tính IAM được cấp quyền để thực hiện các thao tác triển khai.
 Em chạy câu lệnh:
-![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5.2-aws-sts-get-caller-identity-command.png)
+![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-aws-sts-get-caller-identity-command.png)
 
-![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5.2-aws-sts-caller-identity-result.png)
+![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-aws-sts-caller-identity-result.png)
 Lệnh này sử dụng dịch vụ AWS Security Token Service để truy vấn thông tin danh tính hiện tại.
 Kết quả trả về gồm ba trường chính:
 - **UserId:** Mã định danh của danh tính AWS hiện tại.
@@ -68,12 +68,12 @@ Ngoài ra, em sử dụng danh tính IAM có quyền quản trị phù hợp tha
 ## 5.2.5. Cấu hình AWS Region và môi trường triển khai
 Sau khi kiểm tra thành công quyền truy cập, em tiến hành cấu hình khu vực triển khai cho hệ thống RideNow.
 Trong workshop này, em sử dụng AWS Region:
-![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5.2-aws-region-singapore.png)
+![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-aws-region-singapore.png)
 Đây là Region Singapore của AWS.
 Em thiết lập Region mặc định bằng câu lệnh:
-![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5.2-configure-default-aws-region.png)
+![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-configure-default-aws-region.png)
 Sau đó kiểm tra lại:
-![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5.2-verify-aws-region.png)
+![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-verify-aws-region.png)
 
 Bên cạnh đó, hệ thống RideNow sử dụng môi trường `prod`, đại diện cho môi trường production.
 Việc thống nhất Region và môi trường triển khai giúp các tài nguyên AWS được quản lý nhất quán, tránh trường hợp tạo nhầm tài nguyên ở các Region khác nhau.
@@ -82,13 +82,13 @@ Việc thống nhất Region và môi trường triển khai giúp các tài ngu
 ## 5.2.6. Khai báo các biến cấu hình dùng chung
 Thay vì nhập thủ công các thông tin như ID tài khoản AWS, Region hoặc tên cụm Kubernetes trong từng câu lệnh, em sử dụng biến Bash để lưu trữ và tái sử dụng các giá trị này.
 Đầu tiên, em lấy ID tài khoản AWS:
-![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5.2-set-aws-account-id-variable.png)
+![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-set-aws-account-id-variable.png)
 
 Tiếp theo, em lấy Region đã cấu hình:
-![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5.2-set-aws-region-variable.png)
+![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-set-aws-region-variable.png)
 
 Sau đó, em khai báo các biến còn lại:
-![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5.2-set-deployment-environment-variables.png)
+![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-set-deployment-environment-variables.png)
 
 Ý nghĩa của từng biến như sau:
 
@@ -106,7 +106,7 @@ Việc sử dụng các biến cấu hình giúp các câu lệnh triển khai n
 ---
 ## 5.2.7. Kiểm tra kết quả khai báo biến
 Sau khi khai báo các biến, em tiến hành kiểm tra lại toàn bộ giá trị bằng các câu lệnh `echo`.
-![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5.2-verify-deployment-variables.png)
+![Ảnh minh họa các bước chuẩn bị RideNow](/fcj-workshop-ridenow/images/5-Workshop/5.2/5.2-verify-deployment-variables.png)
 
 Trong đó, ACCOUNT_ID sẽ hiển thị ID tài khoản AWS thực tế của em.
 Thông qua kết quả này, em xác nhận các biến đã được khai báo đúng và có thể sử dụng trong những bước triển khai tiếp theo.

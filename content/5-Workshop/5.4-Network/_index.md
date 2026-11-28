@@ -26,7 +26,7 @@ In RideNow, the VPC serves as the networking foundation for deploying subsequent
 To begin, I sign in to the AWS Management Console and select the **Asia Pacific (Singapore)** Region, whose code is `ap-southeast-1`.
 Then, I search for the VPC service, navigate to **Your VPCs**, and choose **Create VPC** to create the private network.
 
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-create-vpc.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-vpc.png)
 Here, the CIDR block `10.30.0.0/16` defines the VPC's IP address range. This address range can then be divided into smaller networks, called subnets, for different system components.
 
 ### 2.3. Configure DNS for the VPC
@@ -39,7 +39,7 @@ This feature allows resources within the VPC to use AWS-provided DNS resolution 
 **The second is DNS Hostnames.**
 This feature supports the assignment of DNS hostnames to eligible resources within the VPC.
 Enabling these two DNS features makes it easier for system components to communicate using domain names instead of directly using IP addresses.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-enable-vpc-dns-settings.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-enable-vpc-dns-settings.png)
 
 ### 2.4. Verify the VPC Using AWS CLI on Ubuntu WSL
 
@@ -47,24 +47,24 @@ In addition to checking the configuration directly in the AWS Console, I use the
 This lets me confirm resource configuration directly through the AWS API rather than relying solely on the management interface.
 **First, I retrieve the VPC ID using its configured name.**
 I use the following command:
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-cli-find-vpc-id.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cli-find-vpc-id.png)
 
 Here, `describe-vpcs` queries VPC information, while `--filters` identifies the correct VPC using its Name tag.
 Next, I run:
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-cli-display-vpc-id.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cli-display-vpc-id.png)
 This command displays the VPC ID automatically assigned by AWS.
 
 **Next, I verify the VPC's CIDR block and state.**
 I run the following command:
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-cli-verify-vpc-cidr-and-state.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cli-verify-vpc-cidr-and-state.png)
 The result shows that the VPC has the intended CIDR block and is in the Available state.
 
 **Finally, I verify the two DNS features.**
 To check DNS Resolution, I use:
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-cli-verify-vpc-dns-resolution.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cli-verify-vpc-dns-resolution.png)
 
 Next, to check DNS Hostnames, I use:
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-cli-verify-vpc-dns-hostnames.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cli-verify-vpc-dns-hostnames.png)
 
 For both commands, I verify that the returned `Value` is `true`.
 This confirms that both DNS features are enabled on the VPC.
@@ -92,7 +92,7 @@ In RideNow, the Internet Gateway supports Internet access for resources in publi
 First, I sign in to the AWS Management Console and select the **Asia Pacific (Singapore)** Region, `ap-southeast-1`.
 
 On the Internet Gateway creation page, I enter the resource name `ridenow-prod-igw`.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-create-internet-gateway.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-internet-gateway.png)
 
 Here, `ridenow` is the system name, `prod` represents the production environment, and `igw` stands for Internet Gateway.
 After reviewing the information, I select **Create internet gateway** to create the resource.
@@ -105,7 +105,7 @@ First, I select `ridenow-prod-igw` and choose **Actions → Attach to VPC**.
 Under Available VPCs, I select `ridenow-prod-vpc` and click **Attach internet gateway**.
 Once the operation succeeds, the Internet Gateway's state changes from **Detached** to **Attached**.
 This confirms that the Internet Gateway is attached to the correct RideNow VPC.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-attach-internet-gateway-to-vpc.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-attach-internet-gateway-to-vpc.png)
 
 ### 3.4. Results and Next Steps
 
@@ -136,17 +136,17 @@ First, I sign in to the AWS Management Console and select the **Asia Pacific (Si
 
 Under VPC ID, I select the previously created `ridenow-prod-vpc`.
 Next, I configure the four subnets as follows:
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-create-subnets-step-1.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-subnets-step-1.png)
 
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-create-subnets-step-2.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-subnets-step-2.png)
 
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-create-subnets-step-3.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-subnets-step-3.png)
 
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-create-subnets-step-4.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-subnets-step-4.png)
 
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-create-subnets-step-5.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-subnets-step-5.png)
 
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-create-subnets-step-6.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-subnets-step-6.png)
 
 | Subnet | Availability Zone | IPv4 CIDR |
 | --- | --- | --- |
@@ -167,13 +167,13 @@ After creating the subnets, I configure Kubernetes tags.
 These tags help the AWS Load Balancer Controller identify appropriate subnets when deploying Load Balancers on EKS in later steps.
 First, I navigate to **VPC → Subnets**, select each subnet, and open the **Tags** tab to inspect or add the required tags.
 For the two public subnets, I use the following tag:
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-public-subnet-kubernetes-tags.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-public-subnet-kubernetes-tags.png)
 
 This tag identifies subnets suitable for deploying public, or Internet-facing, Load Balancers.
 
 For the two private subnets, I use the following tag:
 
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-private-subnet-kubernetes-tags.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-private-subnet-kubernetes-tags.png)
 This tag identifies subnets suitable for deploying internal Load Balancers.
 
 ### 4.4. Configure Automatic Public IP Assignment
@@ -215,7 +215,7 @@ At this step, I create and configure the Public Route Table first. The two Priva
 ### 5.2. Steps to Create a Public Route Table in the AWS Console
 
 First, I sign in to the AWS Management Console and select the **Asia Pacific (Singapore)** Region, `ap-southeast-1`.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-create-public-route-table.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-public-route-table.png)
 On the Route Table creation page, I enter the following settings:
 - **Name:** `ridenow-prod-public-rt`.
 - **VPC:** Select `ridenow-prod-vpc`.
@@ -227,13 +227,13 @@ Destination: 10.30.0.0/16
 Target: local
 ```
 Here, `10.30.0.0/16` is the RideNow VPC address range, while `local` allows resources within the VPC to route traffic to each other.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-public-route-table-local-route.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-public-route-table-local-route.png)
 AWS automatically creates this local route when the Route Table is created.
 
 ### 5.3. Configure the Internet Route
 
 After creating the Public Route Table, I configure a route that allows public subnets to use the Internet Gateway.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-public-route-table-internet-gateway-route.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-public-route-table-internet-gateway-route.png)
 Here, `0.0.0.0/0` represents the default route covering all IPv4 addresses.
 This means that when a packet's destination does not match a more specific route, the Route Table sends the traffic to the Internet Gateway.
 The Internet Gateway `ridenow-prod-igw`, created and attached to the VPC earlier, provides the connection between the VPC and the Internet.
@@ -253,7 +253,7 @@ After setting up Internet routing, I associate the Public Route Table with the t
 Under Explicit subnet associations, I associate both public subnets with the same Public Route Table.
 - `ridenow-prod-public-1`.
 - `ridenow-prod-public-2`.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-public-route-table-subnet-associations.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-public-route-table-subnet-associations.png)
 
 When resources in either public subnet need to send traffic to the Internet, the Route Table provides a default route to the Internet Gateway.
 However, actual Internet access still requires an appropriate public IP address and Security Group and Network ACL settings that permit the traffic.
@@ -289,12 +289,12 @@ Each NAT Gateway is deployed in a public subnet in a different Availability Zone
 
 First, I allocate two Elastic IP addresses for the two NAT Gateways.
 An Elastic IP is a static public IPv4 address allocated by AWS. It gives a NAT Gateway a stable public IP address for outbound Internet connectivity.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-allocate-nat-elastic-ip-1.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-allocate-nat-elastic-ip-1.png)
 
 After entering the required information, I click **Allocate** to allocate the first Elastic IP address.
 
 Next, I repeat the procedure for the second Elastic IP, changing the Name tag to `ridenow-prod-nat-eip-2`.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-allocate-nat-elastic-ip-2.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-allocate-nat-elastic-ip-2.png)
 
 Afterward, I return to the Elastic IPs list to verify the resources.
 I confirm that two Elastic IP addresses have been allocated and that each has a unique Allocation ID generated by AWS.
@@ -303,7 +303,7 @@ These two Elastic IPs will be associated with the first and second NAT Gateways,
 ### 6.3. Create the First NAT Gateway
 
 After allocating the two Elastic IPs, I create the first NAT Gateway.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-create-nat-gateway-1.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-nat-gateway-1.png)
 
 The first NAT Gateway is placed in Public Subnet 1, in Availability Zone `ap-southeast-1a`.
 I select Public as its Connectivity type because it needs to reach the Internet through the VPC's Internet Gateway.
@@ -312,7 +312,7 @@ I also assign the first Elastic IP to give the NAT Gateway a public IPv4 address
 ### 6.4. Create the Second NAT Gateway
 
 Next, I create the second NAT Gateway to serve the private subnet in the other Availability Zone.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-create-nat-gateway-2.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-nat-gateway-2.png)
 
 Unlike the first NAT Gateway, the second is placed in Public Subnet 2, in Availability Zone `ap-southeast-1b`.
 Each NAT Gateway uses its own Elastic IP and is deployed in a separate Availability Zone.
@@ -322,25 +322,25 @@ This design reduces the system's dependence on a single NAT Gateway and allows e
 ### 6.5. Create the First Private Route Table
 
 Once both NAT Gateways are ready, I configure Route Tables so that the private subnets can reach the Internet through their NAT Gateways.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-create-private-route-table-1.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-private-route-table-1.png)
 
 I configure the following route:
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-private-route-table-1-nat-default-route.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-private-route-table-1-nat-default-route.png)
 Here, `0.0.0.0/0` is the default route for IPv4 destinations that do not match a more specific route.
 The NAT Gateway `ridenow-prod-nat-1` receives Internet-bound traffic from Private Subnet 1.
 
 Finally, I associate this Route Table with `ridenow-prod-private-1`.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-private-route-table-1-subnet-association.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-private-route-table-1-subnet-association.png)
 
 Private Subnet 1 now has a default route through NAT Gateway 1.
 
 ### 6.6. Create the Second Private Route Table
 
 Next, I create the second Private Route Table for Private Subnet 2.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-create-private-route-table-2.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-create-private-route-table-2.png)
 
 I then associate it with `ridenow-prod-private-2`.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-private-route-table-2-subnet-association.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-private-route-table-2-subnet-association.png)
 
 Both private subnets are now configured to use separate NAT Gateways.
 Specifically, Private Subnet 1 uses NAT Gateway 1 in Availability Zone 1a, while Private Subnet 2 uses NAT Gateway 2 in Availability Zone 1b.
@@ -377,7 +377,7 @@ The purpose is to restrict unnecessary connections and add only the permissions 
 After creating the Security Group, I add a dedicated rule allowing communication between resources that use this same group.
 
 Outbound Rules define which connections the resources associated with the Security Group may initiate.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-cluster-sg-outbound-rules.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cluster-sg-outbound-rules.png)
 
 With this configuration, resources associated with the Security Group can initiate outbound IPv4 traffic using all protocols and ports.
 This supports connections to services such as the RDS database or external services through a NAT Gateway.
@@ -385,14 +385,14 @@ However, actual connectivity also depends on Route Tables, Network ACLs, and oth
 I retain this Outbound Rule for the Cluster Security Group.
 
 After configuring the Inbound and Outbound Rules, I add a tag for resource management and lookup.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-cluster-sg-name-tag.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cluster-sg-name-tag.png)
 
 The Name tag helps me identify the Security Group in the AWS Console and query it with the AWS CLI.
 
 ### 7.3. Add a Self-referencing Inbound Rule
 
 After creating the Security Group, I add a self-referencing Inbound Rule, also called a **Self-referencing Rule**.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-cluster-sg-self-referencing-inbound-rule.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-cluster-sg-self-referencing-inbound-rule.png)
 
 Importantly, for Source, I do not choose `0.0.0.0/0`. Instead, I select the Security Group itself: `ridenow-prod-cluster-sg`.
 This is called a self-referencing rule because the Security Group refers to itself as the permitted source.
@@ -437,7 +437,7 @@ Rather than opening the database port to the entire Internet, I use the applicat
 After entering the basic information, I configure the Inbound Rule.
 An Inbound Rule determines which incoming connections are allowed to reach resources associated with a Security Group.
 For the Database Security Group, I allow PostgreSQL connections only from the previously created Cluster Security Group.
-![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5.4-database-sg-postgresql-inbound-rule.png)
+![RideNow network configuration illustration](/fcj-workshop-ridenow/images/5-Workshop/5.4/5.4-database-sg-postgresql-inbound-rule.png)
 
 When PostgreSQL is selected as the Type, AWS automatically sets the protocol to TCP and the port to 5432.
 The most important setting is Source.
