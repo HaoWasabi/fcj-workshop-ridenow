@@ -7,17 +7,20 @@ pre : " <b> 5.8.1. </b> "
 ---
 
 
-Trong phần này chúng ta sẽ tạo tài nguyên KMS key, EKS cluster  và các Fargate profiles.
+Trong phần này, chúng ta sẽ tiến hành tạo và cấu hình các tài nguyên AWS cần thiết cho EKS, bao gồm KMS Key, EKS Cluster, IAM Roles for Service Accounts (IRSA) và các Fargate Profiles.
 
 ## 5.8.1 Tạo KMS key
-1. Truy cập vào trang Key Management Service
+AWS Key Management Service (AWS KMS) là dịch vụ quản lý khóa mã hóa của AWS. Trong EKS, KMS được sử dụng để mã hóa Kubernetes Secrets, giúp bảo vệ các thông tin nhạy cảm như credentials, tokens và passwords được lưu trữ trong cluster.
+
+Truy cập vào Key Management Service trên AWS Console.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-1.png)
 
-Đây là trang Key Management Service
+Đây là giao diện quản lý các KMS Keys trong AWS.
+
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-2.png)
 
-2. Chúng ta sẽ tạo Key với thông số sau 
+CHúng ta sẽ tạo một KMS Key mới với các thông số sau:
 
 | Setting | Value |
 |---|---|
@@ -39,8 +42,10 @@ Trong phần này chúng ta sẽ tạo tài nguyên KMS key, EKS cluster  và c�
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-11.png)
 
-3. Thiết lập key với json sau
-   
+Sau khi tạo Key, chúng ta cần cấu hình Key Policy để xác định những IAM Principal nào được phép sử dụng và quản lý KMS Key.
+
+Sử dụng policy JSON sau:
+
 ```json
 {
   "Version": "2012-10-17",
@@ -58,7 +63,8 @@ Trong phần này chúng ta sẽ tạo tài nguyên KMS key, EKS cluster  và c�
 }
 ```
 
-ACCOUNT_ID là id account của bạn
+Policy này cấp quyền quản lý KMS Key ở cấp tài khoản. Các IAM User và Role vẫn cần có IAM permissions phù hợp để thực hiện các thao tác tương ứng.
+
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-12.png)
 
@@ -66,7 +72,13 @@ ACCOUNT_ID là id account của bạn
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-14.png)
 
-4. Tiếp theo cần bật rotation
+Tiếp theo, bật tính năng Automatic Key Rotation cho KMS Key.
+
+Tính năng này cho phép AWS tự động tạo phiên bản cryptographic key material mới theo chu kỳ, giúp giảm rủi ro khi sử dụng một khóa mã hóa trong thời gian dài.
+
+Việc xoay vòng khóa không làm mất khả năng giải mã dữ liệu đã được mã hóa bằng phiên bản khóa cũ. AWS KMS vẫn giữ lại các phiên bản key material cần thiết để giải mã dữ liệu trước đó.
+
+Thực hiện bật Automatic Key Rotation trong phần cấu hình của KMS Key.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-15.png)
 
@@ -77,78 +89,165 @@ ACCOUNT_ID là id account của bạn
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-18.png)
 
 ## 5.8.2 Tạo EKS Cluster
-Truy cập vào trang EKS chọn Create Cluster
+
+Amazon Elastic Kubernetes Service (Amazon EKS) là dịch vụ Kubernetes được quản lý bởi AWS. EKS chịu trách nhiệm quản lý Kubernetes Control Plane, bao gồm API Server, Scheduler và các thành phần điều phối của Kubernetes.
+
+Trong phần này, chúng ta sẽ tạo EKS Cluster có tên ridenow-prod, sử dụng Kubernetes version 1.34, triển khai trên các Private Subnets và sử dụng AWS KMS để mã hóa Kubernetes Secrets.
+
+Truy cập vào Amazon Elastic Kubernetes Service (EKS) trên AWS Console và chọn Create Cluster.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-28.png)
 
 
-Đặt **Configuration options** là `Custom configuration`.
+Thiết lập các thông số sau:
 
-Tắt **Use EKS Auto Mode**.
+- **Configuration options:** Chọn `Custom configuration`.
+- **Use EKS Auto Mode:** Tắt.
 
-Đặt **Name** là `ridenow-prod`.
+Chúng ta sử dụng Custom configuration để tự quản lý cấu hình Cluster và lựa chọn cách triển khai Compute thông qua Fargate Profiles ở bước tiếp theo. Vì vậy, không sử dụng EKS Auto Mode.
 
-Đặt **Cluster IAM role** là `ridenow-prod-eks-cluster-role`.
+Tiếp theo, cấu hình thông tin Cluster:
+
+| Setting | Value |
+|---|---|
+| Name | `ridenow-prod` |
+| Cluster IAM role | `ridenow-prod-eks-cluster-role` |
+
+**Cluster IAM role** là IAM Role cho phép EKS Control Plane gọi các AWS API cần thiết để quản lý tài nguyên và vận hành Cluster.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-29.png)
 
-Đặt Kubernetes version là 1.34 và Đặt Upgrade policy là Standard.
+Thiết lập các thông số:
+
+| Setting | Value |
+|---|---|
+| Kubernetes version | `1.34` |
+| Upgrade policy | `Standard` |
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-30.png)
 
-Giữ **Bootstrap cluster administrator access** ở `Allow cluster administrator access`.
 
-Giữ **Cluster authentication mode** ở `EKS API and ConfigMap`.
+Tiếp theo, cấu hình quyền truy cập và mã hóa:
 
-Tick **Turn on envelope encryption of Kubernetes secrets using KMS**.
+- **Bootstrap cluster administrator access:** Giữ `Allow cluster administrator access`.
+- **Cluster authentication mode:** Giữ `EKS API and ConfigMap`.
+- **Turn on envelope encryption of Kubernetes secrets using KMS:** Bật.
+- **KMS key:** Chọn alias `ridenow-prod-eks-secrets`.
 
-Đặt **KMS key** là alias `ridenow-prod-eks-secrets`.
+Sau khi hoàn tất, chọn **Next**.
 
-Chọn **Next**.
-   
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-31.png)
 
-Đặt **VPC** là `ridenow-prod-vpc`.
 
-Ở **Subnets**, bỏ tick mọi subnet trừ `ridenow-prod-private-1` và `ridenow-prod-private-2`.
+Networking xác định cách EKS Cluster kết nối với VPC, các Subnets và những nguồn có thể truy cập Kubernetes API Server.
 
-Đặt **Security groups** là `ridenow-prod-cluster-sg`.
+Cấu hình các thông số sau:
 
-Đặt **Cluster IP address family** là `IPv4`.
+| Setting | Value |
+|---|---|
+| VPC | `ridenow-prod-vpc` |
+| Subnets | `ridenow-prod-private-1`, `ridenow-prod-private-2` |
+| Security groups | `ridenow-prod-cluster-sg` |
+| Cluster IP address family | `IPv4` |
+
+Ở phần **Subnets**, bỏ chọn tất cả các Subnets ngoại trừ:
+
+- `ridenow-prod-private-1`
+- `ridenow-prod-private-2`
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-59.png)
-Đặt **Cluster endpoint access** là `Public and private`.
 
-Mở rộng **Advanced settings**. Giữ **Public access source allowlist** ở `0.0.0.0/0`.
+Tiếp theo, cấu hình **Cluster endpoint access**:
 
-Chọn **Next**.
+| Setting | Value |
+|---|---|
+| Cluster endpoint access | `Public and private` |
+| Public access source allowlist | `0.0.0.0/0` |
+
+Mở rộng **Advanced settings** và giữ **Public access source allowlist** ở `0.0.0.0/0`.
+
+Sau khi hoàn tất, chọn **Next**.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-33.png)
 
 
-Ở **Configure observability**, để tắt mọi loại log của control plane. Chọn **Next**.
+
+**Control Plane Logging** cho phép EKS gửi các loại log hoạt động của Kubernetes Control Plane đến Amazon CloudWatch Logs.
+
+Trong phần **Configure observability**, tắt tất cả các loại Control Plane Logs.
+
+Trong môi trường Lab này, chúng ta tắt các loại log để tránh phát sinh chi phí CloudWatch Logs không cần thiết.
+
+Sau đó, chọn **Next**.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-34.png)
-Ở **Select add-ons**, giữ tick `kube-proxy`, `CoreDNS` và `Amazon VPC CNI`. Chọn **Next**.
+
+
+EKS Add-ons là các thành phần mở rộng giúp Kubernetes Cluster thực hiện những chức năng cơ bản như quản lý DNS, networking và network proxy.
+
+Trong phần **Select add-ons**, giữ chọn các Add-ons sau:
+
+- `kube-proxy`
+- `CoreDNS`
+- `Amazon VPC CNI`
+
+**Giải thích:**
+
+- **kube-proxy:** Quản lý các quy tắc networking để hỗ trợ giao tiếp giữa các Kubernetes Services và Pods.
+- **CoreDNS:** Cung cấp dịch vụ DNS nội bộ cho Kubernetes Cluster, giúp các Pods và Services có thể phân giải tên miền.
+- **Amazon VPC CNI:** Cho phép Kubernetes Pods sử dụng địa chỉ IP từ VPC và giao tiếp với các tài nguyên AWS thông qua mạng VPC.
+
+Đây là các thành phần quan trọng để Cluster có thể vận hành các Kubernetes Workloads.
+
+Sau khi hoàn tất, chọn **Next**.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-35.png)
 
-Ở **Configure selected add-ons settings**, giữ mặc định. Chọn **Next**.
+
+Ở phần **Configure selected add-ons settings**, giữ nguyên các cấu hình mặc định cho cả ba Add-ons.
+
+Chọn **Next** để tiếp tục.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-36.png)
-Chọn **Create**.
+
+Kiểm tra lại toàn bộ cấu hình đã thiết lập. Nếu các thông số chính xác, chọn **Create** để bắt đầu khởi tạo EKS Cluster.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-37.png)
 
+AWS sẽ tiến hành tạo các tài nguyên cần thiết cho Kubernetes Control Plane và cấu hình các thành phần liên quan.
+
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-39.png)
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-40.png)
-Chờ 10 đến 15 phút cho đến khi **Status** là `Active`.
+
+Quá trình khởi tạo thường mất khoảng 10–15 phút. Chờ cho đến khi **Status** chuyển sang `Active`.
+
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-41.png)
 
-## 5.8.3 Tạo Fargate profile
-bước này chúng ta sẽ tạo Fargate profile `ridenow-prod-system` 
 
-Vào **EKS -> Clusters -> `ridenow-prod` -> Compute** tab **-> Fargate profiles -> Add Fargate profile**.
+Sau khi Cluster có trạng thái `Active`, chúng ta đã hoàn thành việc khởi tạo EKS Control Plane.
+
+## 5.8.3 Tạo Fargate profile
+
+Amazon EKS Fargate là dịch vụ cho phép chạy Kubernetes Pods trên AWS Fargate mà không cần tự quản lý EC2 Worker Nodes.
+
+**Fargate Profile** xác định những Kubernetes Pods nào sẽ được triển khai trên Fargate thông qua Namespace và Labels Selector.
+
+
+Trong Workshop này, chúng ta sẽ tạo 3 Fargate Profiles để phân chia các Pods theo mục đích sử dụng:
+
+| Fargate Profile | Namespace | Mục đích |
+|---|---|---|
+| `ridenow-prod-system` | `kube-system`, `external-secrets` | Chạy các System Pods và External Secrets |
+| `ridenow-prod-app` | `ridenow` | Chạy các Application Pods của RideNow |
+| `ridenow-prod-observability` | `aws-observability` | Chạy các Pods phục vụ Observability |
+
+
+
+Đầu tiên, chúng ta sẽ tạo Fargate Profile dành cho các thành phần hệ thống và External Secrets.
+
+Truy cập vào:
+
+**EKS → Clusters → `ridenow-prod` → Compute → Fargate profiles → Add Fargate profile**.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-42.png)
 
@@ -157,40 +256,84 @@ Vào **EKS -> Clusters -> `ridenow-prod` -> Compute** tab **-> Fargate profiles 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-44.png)
 
 
-Đặt **Name** là `ridenow-prod-system`.
-Đặt **Pod execution role** là `ridenow-prod-eks-fargate-pod-execution-role`.
-Ở **Subnets**, chỉ giữ `ridenow-prod-private-1` và `ridenow-prod-private-2`.
-Chọn **Next**.
+Thiết lập các thông số sau:
+
+| Setting | Value |
+|---|---|
+| Name | `ridenow-prod-system` |
+| Pod execution role | `ridenow-prod-eks-fargate-pod-execution-role` |
+| Subnets | `ridenow-prod-private-1`, `ridenow-prod-private-2` |
+
+
+Sau khi hoàn tất, chọn **Next**.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-45.png)
 
 
-Ở **Pod selectors**, đặt **Namespace** là `kube-system`. Để trống **Match labels**.
-Chọn **Add selector**. Đặt **Namespace** là `external-secrets`. Để trống **Match labels**.
-Chọn **Next**.
+Tiếp theo, cấu hình **Pod selectors**.
+
+Chúng ta sẽ thêm hai Selectors:
+
+| Namespace | Match labels |
+|---|---|
+| `kube-system` | Để trống |
+| `external-secrets` | Để trống |
+
+Chọn **Add selector** để thêm Namespace `external-secrets`, sau đó chọn **Next**.
+
+
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-46.png)
 
-1.  Chọn **Create**.
+Chọn **Create** để tạo Fargate Profile.
+
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-47.png)
 
-Chờ 1 đến 2 phút cho đến khi **Status** là `Active` thì mới tạo tiếp Fargate profile khác.
+
+Chờ khoảng 1–2 phút cho đến khi **Status** chuyển sang `Active`.
+
+Chỉ tiếp tục tạo Fargate Profile tiếp theo sau khi Profile hiện tại đã ở trạng thái `Active`.
 
 ![alt text](/fcj-workshop-ridenow/images/5-Workshop/5.8-Eks/image-60.png)
 
-Tương tự chúng ta sẽ tạo Fargate profile `ridenow-prod-app` (`AppFargateProfile`) và `ridenow-prod-observability` (`ObservabilityFargateProfile`) với thông số sau 
+**Tạo Fargate Profile `ridenow-prod-app`**
 
-ridenow-prod-app
+Fargate Profile này dành cho các Application Pods của hệ thống RideNow.
 
-Đặt **Name** là `ridenow-prod-app`.
-Đặt **Pod execution role** là `ridenow-prod-eks-fargate-pod-execution-role`.
-Ở **Subnets**, chỉ giữ `ridenow-prod-private-1` và `ridenow-prod-private-2`.
-Chọn **Next**.
-Ở **Pod selectors**, đặt **Namespace** là `ridenow`. Để trống **Match labels**.
+Thực hiện tương tự bước trên và thiết lập các thông số sau:
 
-ridenow-prod-observability
+| Setting | Value |
+|---|---|
+| Name | `ridenow-prod-app` |
+| Pod execution role | `ridenow-prod-eks-fargate-pod-execution-role` |
+| Subnets | `ridenow-prod-private-1`, `ridenow-prod-private-2` |
 
-Đặt **Name** là `ridenow-prod-observability`.
-Đặt **Pod execution role** là `ridenow-prod-eks-fargate-pod-execution-role`.
-Ở **Subnets**, chỉ giữ `ridenow-prod-private-1` và `ridenow-prod-private-2`.
-Chọn **Next**.
-Ở **Pod selectors**, đặt **Namespace** là `aws-observability`. Để trống **Match labels**.
+Ở phần **Pod selectors**, cấu hình:
+
+| Namespace | Match labels |
+|---|---|
+| `ridenow` | Để trống |
+
+Chọn **Next** và **Create** để hoàn tất.
+
+
+**Tạo Fargate Profile `ridenow-prod-observability`**
+
+Fargate Profile cuối cùng dành cho các thành phần phục vụ Observability.
+
+Thực hiện tương tự và thiết lập các thông số:
+
+| Setting | Value |
+|---|---|
+| Name | `ridenow-prod-observability` |
+| Pod execution role | `ridenow-prod-eks-fargate-pod-execution-role` |
+| Subnets | `ridenow-prod-private-1`, `ridenow-prod-private-2` |
+
+Ở phần **Pod selectors**, cấu hình:
+
+| Namespace | Match labels |
+|---|---|
+| `aws-observability` | Để trống |
+
+Namespace `aws-observability` được sử dụng cho các thành phần liên quan đến cấu hình và thu thập dữ liệu Observability trong môi trường EKS.
+
+Chọn **Next** và **Create** để hoàn tất.
