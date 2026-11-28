@@ -1,5 +1,5 @@
 ---
-title : "Fargate Networking và IAM Roles for Service Accounts"
+title : "OIDC Identity Provider và IAM Roles for Service Accounts"
 date : 2024-01-01
 weight : 2
 chapter : false
@@ -8,42 +8,9 @@ pre : " <b> 5.8.2. </b> "
 
 Trong phần này chúng ta sẽ thực hiện các phần gồm:
 
-Cấu hình Security Group để cho phép các Pod trên EKS kết nối đến PostgreSQL và Redis.
-
 Tạo OIDC Identity Provider để thiết lập cơ chế xác thực giữa Kubernetes và AWS IAM.
 
 Tạo IAM Roles for Service Accounts (IRSA), cho phép từng Kubernetes Service Account đảm nhận IAM Role tương ứng và truy cập các dịch vụ AWS theo quyền được cấp.
-
-## Cấu hình Inbound Rules cho PostgreSQL và Redis
-Để các Fargate Pod trên EKS có thể kết nối đến PostgreSQL và Redis, cần bổ sung Inbound Rules vào Security Group tương ứng
-
-### PostgreSQL (`DbIngressFromFargatePods`)
-
-1. Vào **EC2 -> Security Groups**.
-2. Tìm `ridenow-prod-db-sg` và chọn nó.
-3. Mở tab **Inbound rules** và chọn **Edit inbound rules -> Add rule**.
-4. Đặt **Type** là `PostgreSQL` (mục này tự điền **Protocol** `TCP` và **Port range** `5432`).
-5. Đặt **Source** là `Custom`.
-6. Trong ô tìm kiếm, dán giá trị của `EKS_CLUSTER_SG_ID` và chọn group `eks-cluster-sg-ridenow-prod-<number>`.
-7. Đặt **Description** là `PostgreSQL 5432 from the EKS cluster security group (Fargate pods)`.
-8. Chọn **Save rules**.
-
-Group lúc này có hai rule ở cổng 5432: rule từ mục 5.4 và rule này.
-
-### Redis (`RedisIngressFromFargatePods`)
-
-1. Vào **EC2 -> Security Groups**.
-2. Tìm `ridenow-prod-redis-sg` và chọn nó.
-3. Mở tab **Inbound rules** và chọn **Edit inbound rules -> Add rule**.
-4. Đặt **Type** là `Custom TCP`.
-5. Đặt **Port range** là `6379`.
-6. Đặt **Source** là `Custom`.
-7. Dán giá trị của `EKS_CLUSTER_SG_ID` và chọn `eks-cluster-sg-ridenow-prod-<number>`.
-8. Đặt **Description** là `Redis 6379 from the EKS cluster security group (Fargate pods)`.
-9. Chọn **Save rules**.
-
-Group lúc này có hai rule ở cổng 6379.
-
 
 ## Tạo OIDC Identity Provider cho EKS
 OIDC (OpenID Connect) Identity Provider cho phép AWS IAM xác thực danh tính của Kubernetes Service Account thông qua OpenID Connect token do EKS cấp.
